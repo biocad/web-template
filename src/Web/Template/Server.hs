@@ -23,7 +23,7 @@ import           Web.Scotty.Trans                     (Options (..),
                                                        defaultHandler, header,
                                                        json, middleware, param,
                                                        scottyOptsT, status)
-import           Web.Template.Except                  (Except, JsonError (..),
+import           Web.Template.Except                  (Except, JsonWebError (..),
                                                        handleEx)
 import           Web.Template.Types                   (ServerConfig (..), ScottyM,
                                                        UserId, WebM)
@@ -71,7 +71,7 @@ auth (AuthProcess p) = do
     case idMaybe of
         Just id' -> p id'
         Nothing -> do status status401
-                      json . JsonError $ "Authorization failed"
+                      json . JsonWebError $ "Authorization failed"
 
 checkVersion :: Int -> WebM s () -> WebM s ()
 checkVersion version route = do
@@ -79,7 +79,7 @@ checkVersion version route = do
     if "v" ++ show version == versionPath
       then route
       else do status status405
-              json . JsonError $  "Server API version: " ++ show version ++ "; got version: " ++ versionPath
+              json . JsonWebError $  "Server API version: " ++ show version ++ "; got version: " ++ versionPath
 
 getIdFromCookies :: TL.Text -> Maybe UserId
 getIdFromCookies cookies = lookup "id" $ parseCookiesText $ encodeUtf8 $ toStrict cookies

@@ -1,6 +1,6 @@
 {-# LANGUAGE DeriveGeneric     #-}
 module Web.Template.Except
-  ( Except (..), JsonError (..)
+  ( Except (..), JsonWebError (..)
   , handleEx
   ) where
 
@@ -20,18 +20,18 @@ instance ScottyError Except where
 data Except = Forbidden | NotFound Int | StringEx String
     deriving (Show, Eq)
 
-newtype JsonError = JsonError { error :: String }
+newtype JsonWebError = JsonWebError { error :: String }
   deriving (Generic)
 
-instance ToJSON JsonError
+instance ToJSON JsonWebError
 
 handleEx :: Monad m => Except -> ActionT Except m ()
 handleEx Forbidden = do
     status status403
-    json . JsonError $ "Forbidden from server"
+    json . JsonWebError $ "Forbidden from server"
 handleEx (NotFound i) = do
     status status404
-    json . JsonError $ "Can't find " ++ show i
+    json . JsonWebError $ "Can't find " ++ show i
 handleEx (StringEx str)  = do
     status status500
-    json . JsonError $ "Server problem: " ++ str
+    json . JsonWebError $ "Server problem: " ++ str
