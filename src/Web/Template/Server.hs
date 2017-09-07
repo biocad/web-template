@@ -1,7 +1,10 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards   #-}
 
-module Web.Template.Server where
+module Web.Template.Server
+  ( CustomWebServer (..), Process (..), Route (..)
+  , runWebServerConf, runWebServer
+  ) where
 
 import           Control.Monad.Reader
 import           Data.String                          (fromString)
@@ -22,7 +25,7 @@ import           Web.Scotty.Trans                     (Options (..),
                                                        scottyOptsT, status)
 import           Web.Template.Except                  (Except, JsonError (..),
                                                        handleEx)
-import           Web.Template.Types                   (ServerConfig (..),
+import           Web.Template.Types                   (ServerConfig (..), ScottyM,
                                                        UserId, WebM)
 
 
@@ -40,16 +43,19 @@ data CustomWebServer s = CustomWebServer { initialState :: s
                                          , routes       :: [Route s]
                                          }
 
+runWebServerConf :: ServerConfig -> CustomWebServer s -> IO ()
+runWebServerConf conf CustomWebServer{..} = scottyOptsT (scottyOpts conf) (`runReaderT` initialState) $ do
+    middleware logStdoutDev
+    defaultHandler handleEx
+    mapM_ runRoute routes
+
 runWebServer :: CustomWebServer s -> IO ()
-runWebServer CustomWebServer{..} = do
+runWebServer cws = do
     conf <- getRecord "Web template"
-    scottyOptsT (scottyOpts conf) (`runReaderT` initialState) $ do
-        middleware logStdoutDev
-        defaultHandler handleEx
-        mapM_ runRoute routes
-  where
-    runRoute :: Route s -> ScottyT Except (ReaderT s IO) ()
-    runRoute Route{..} = method (fromString $ "/:version" ++ path) (checkVersion version . auth $ process)
+    runWebServerConf conf cws
+
+runRoute :: Route s -> ScottyM s ()
+runRoute Route{..} = method (fromString $ "/:version" ++ path) (checkVersion version . auth $ process)
 
 
 scottyOpts :: ServerConfig -> Options
