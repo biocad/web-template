@@ -1,4 +1,5 @@
 {-# LANGUAGE DeriveGeneric     #-}
+
 module Web.Template.Except
   ( Except (..), JsonWebError (..)
   , handleEx

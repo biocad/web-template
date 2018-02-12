@@ -2,28 +2,27 @@
 
 module Main where
 
-import           Control.Monad.Reader (ask, lift, liftIO)
-import           Data.Text            (unpack)
+import           Control.Monad.Reader (ask, lift)
+import           Data.Text            (pack)
+import           Data.Text.Lazy       (fromStrict)
+import           Text.Printf          (printf)
 import           Web.Scotty.Trans     (get, text)
 import           Web.Template         (CustomWebServer (..), Process (..),
                                        Route (..), runWebServer)
 
 
-
 main :: IO ()
-main = let myState = True
-           myWebServer = CustomWebServer myState [ Route get 1 "/ping" pingR
-                                                 , Route get 1 "/pong" pongR
-                                                 ]
-       in runWebServer myWebServer
+main = runWebServer 5000 myWebServer
+  where env = 0
+        myWebServer = CustomWebServer env [ Route get 1 "/ping" pingR
+                                          , Route get 1 "/pong" pongR
+                                          ]
 
-pingR :: Process Bool
+pingR :: Process Int
 pingR = Process $ do
-    state <- lift ask
-    liftIO $ print state
-    text "Pong!"
+    env <- lift ask
+    text . fromStrict . pack $ printf "Pong!\nCurrent environment: %d." env
 
-pongR :: Process Bool
-pongR = AuthProcess $ \userId -> do
-  liftIO . print $ "Authorised: " ++ unpack userId
-  text "Ping!"
+pongR :: Process Int
+pongR = AuthProcess $ \userId ->
+    text . fromStrict . pack $ printf "Ping!\nAuthorised: %s." userId

@@ -1,5 +1,5 @@
 name:                web-template
-version:             0.1.0.2
+version:             0.1.0.3
 synopsis:            Web template
 description:
             Web template includes:
@@ -22,7 +22,6 @@ library
   hs-source-dirs:      src
   exposed-modules:     Web.Template
   other-modules:       Web.Template.Except
-                     , Web.Template.Types
                      , Web.Template.Server
   build-depends:       base >= 4.7 && < 5
                      , scotty
