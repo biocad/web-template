@@ -1,5 +1,9 @@
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE RecordWildCards   #-}
+{-# LANGUAGE FlexibleInstances     #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE OverloadedStrings     #-}
+{-# LANGUAGE RecordWildCards       #-}
+{-# LANGUAGE TypeSynonymInstances  #-}
+
 
 module Web.Template.Server
   ( UserId, Port, Env, WebM, ScottyM
@@ -17,7 +21,7 @@ import           Network.Wai.Handler.Warp             (defaultSettings,
                                                        exceptionResponseForDebug,
                                                        setOnExceptionResponse,
                                                        setPort)
-import           Network.Wai.Middleware.RequestLogger (logStdoutDev)
+import           Network.Wai.Middleware.RequestLogger (logStdout)
 import           Web.Cookie                           (parseCookiesText)
 import           Web.Scotty.Trans                     (ActionT, Options (..),
                                                        RoutePattern, ScottyT,
@@ -68,9 +72,10 @@ data CustomWebServer env = CustomWebServer { environment :: env
 -- | For given port and server settings run the server.
 runWebServer :: Port -> CustomWebServer env -> IO ()
 runWebServer port CustomWebServer{..} = scottyOptsT (scottyOpts port) (`runReaderT` environment) $ do
-    middleware logStdoutDev
+    middleware logStdout
     defaultHandler handleEx
-    mapM_ runRoute routes
+    _ <- mapM runRoute routes
+    pure ()
 
 runRoute :: Route env -> ScottyM env ()
 runRoute Route{..} = method (fromString $ "/:version" ++ path) (checkVersion version . auth $ process)
