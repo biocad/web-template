@@ -11,33 +11,31 @@ module Web.Template.Server
   , defaultHandleLog
   ) where
 
-import           Control.Monad.RWS                    (evalRWST)
-import           Data.String                          (fromString)
-import           Data.Text.Encoding                   (encodeUtf8)
-import           Data.Text.Lazy                       as TL (Text, toStrict)
-import           Network.HTTP.Types.Status            (status401, status405)
-import           Network.Wai                          (Response)
-import           Network.Wai.Handler.Warp             (defaultSettings,
-                                                       exceptionResponseForDebug,
-                                                       setOnExceptionResponse,
-                                                       setPort)
-import           Network.Wai.Middleware.RequestLogger (logStdout)
-import           Web.Cookie                           (parseCookiesText)
-import           Web.Scotty.Trans                     (Options (..),
-                                                       defaultHandler, header,
-                                                       json, middleware, param,
-                                                       scottyOptsT, status)
-import           Web.Template.Except                  (JsonWebError (..),
-                                                       handleEx)
+import           Control.Monad.RWS         (evalRWST)
+import           Data.String               (fromString)
+import           Data.Text.Encoding        (encodeUtf8)
+import           Data.Text.Lazy            as TL (Text, toStrict)
+import           Network.HTTP.Types.Status (status401, status405)
+import           Network.Wai               (Response)
+import           Network.Wai.Handler.Warp  (defaultSettings,
+                                            exceptionResponseForDebug,
+                                            setOnExceptionResponse, setPort)
+import           Web.Cookie                (parseCookiesText)
+import           Web.Scotty.Trans          (Options (..), defaultHandler,
+                                            header, json, middleware, param,
+                                            scottyOptsT, status)
+import           Web.Template.Except       (JsonWebError (..), handleEx)
+import           Web.Template.Log          (bcdlog)
 import           Web.Template.Types
 
 -- | For given port and server settings run the server.
 runWebServer :: (Monoid w, Show w) => Port -> CustomWebServer r w s -> IO ()
-runWebServer port CustomWebServer{..} = scottyOptsT (scottyOpts port) (handleLog .
-                                                    (\rws -> evalRWST rws readerEnv stateEnv)) $ do
-    middleware logStdout
-    defaultHandler handleEx
-    mapM_ runRoute routes
+runWebServer port CustomWebServer{..} = do
+    customLog <- bcdlog
+    scottyOptsT (scottyOpts port) (handleLog . (\rws -> evalRWST rws readerEnv stateEnv)) $ do
+        middleware customLog
+        defaultHandler handleEx
+        mapM_ runRoute routes
 
 defaultHandleLog :: Show w => IO (Response, w) -> IO Response
 defaultHandleLog = (print . snd <$>) >> (fst <$>)
@@ -70,3 +68,4 @@ checkVersion version route = do
 
 getIdFromCookies :: TL.Text -> Maybe UserId
 getIdFromCookies cookies = lookup "id" $ parseCookiesText $ encodeUtf8 $ toStrict cookies
+
