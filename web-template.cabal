@@ -1,5 +1,5 @@
 name:                web-template
-version:             0.1.1.0
+version:             0.1.1.1
 synopsis:            Web template
 description:
             Web template includes:
@@ -24,17 +24,22 @@ library
   other-modules:       Web.Template.Except
                      , Web.Template.Server
                      , Web.Template.Types
+                     , Web.Template.Log
   build-depends:       base >= 4.7 && < 5
-                     , scotty
+                     , aeson
+                     , bytestring
+                     , bcd-log
+                     , cookie
+                     , data-default
+                     , fast-logger
                      , http-types
                      , mtl
-                     , text
                      , optparse-generic
-                     , cookie
-                     , aeson
-                     , warp
+                     , scotty
+                     , text
                      , wai
                      , wai-extra
+                     , warp
   default-language:    Haskell2010
 
 executable web-template
