@@ -7,5 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ## [0.1.1.1] - 2018-09-12
+### Fixed
+- Processing of different versions for the same routes.
+
+## [0.1.1.1] - 2018-09-12
 ### Changed
 - Logging format. Now it is look like: `{"app":"scotty","msg":"GET /v1/ping 200","timestamp":0,"level":"INFO","datetime":"1970-01-01T00:00:00+0000"}`. TODO: use correct time.

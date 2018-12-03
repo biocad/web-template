@@ -11,19 +11,20 @@ module Web.Template.Server
   , defaultHandleLog
   ) where
 
+import           Control.Monad             (unless)
 import           Control.Monad.RWS         (evalRWST)
 import           Data.String               (fromString)
 import           Data.Text.Encoding        (encodeUtf8)
 import           Data.Text.Lazy            as TL (Text, toStrict)
-import           Network.HTTP.Types.Status (status401, status405)
+import           Network.HTTP.Types.Status (status401)
 import           Network.Wai               (Response)
 import           Network.Wai.Handler.Warp  (defaultSettings,
                                             exceptionResponseForDebug,
                                             setOnExceptionResponse, setPort)
 import           Web.Cookie                (parseCookiesText)
 import           Web.Scotty.Trans          (Options (..), defaultHandler,
-                                            header, json, middleware, param,
-                                            scottyOptsT, status)
+                                            header, json, middleware, next,
+                                            param, scottyOptsT, status)
 import           Web.Template.Except       (JsonWebError (..), handleEx)
 import           Web.Template.Log          (bcdlog)
 import           Web.Template.Types
@@ -61,10 +62,8 @@ auth (AuthProcess p) = do
 checkVersion :: Monoid w => Int -> WebM r w s () -> WebM r w s ()
 checkVersion version route = do
     versionPath <- param "version"
-    if "v" ++ show version == versionPath
-      then route
-      else do status status405
-              json . JsonWebError $ "Server API version: " ++ show version ++ "; got version: " ++ versionPath
+    unless ("v" ++ show version == versionPath) next
+    route
 
 getIdFromCookies :: TL.Text -> Maybe UserId
 getIdFromCookies cookies = lookup "id" $ parseCookiesText $ encodeUtf8 $ toStrict cookies
