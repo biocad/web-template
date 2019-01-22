@@ -37,9 +37,9 @@ import           Web.Template.Types
 runWebServer :: (Monoid w, Show w) => Port -> CustomWebServer r w s -> IO ()
 runWebServer port CustomWebServer {..} =
   scottyOptsT (scottyOpts port) ((fst <$>) . (\rws -> evalRWST rws readerEnv stateEnv)) $ do
-    mapM_ middleware middlewares
-    defaultHandler handleEx
-    mapM_ runRoute routes
+      mapM_ middleware middlewares
+      defaultHandler handleEx
+      mapM_ runRoute routes
 
 defaultHandleLog :: Middleware
 defaultHandleLog = logStdout
