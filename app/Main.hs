@@ -16,10 +16,10 @@ main = runWebServer 5000 myWebServer
   where
     rEnv = 0
     wEnv = ["Start server"]
-    myWebServer = CustomWebServer rEnv wEnv () defaultHandleLog [ Route get 1 "/ping" pingR
-                                                                , Route get 2 "/ping" pingR2
-                                                                , Route get 1 "/pong" pongR
-                                                                ]
+    myWebServer = CustomWebServer rEnv wEnv () [defaultHandleLog] [ Route get 1 "/ping" pingR
+                                                                  , Route get 2 "/ping" pingR2
+                                                                  , Route get 1 "/pong" pongR
+                                                                  ]
 
 pingR :: ProcessRW Int [Text]
 pingR = Process $ do
