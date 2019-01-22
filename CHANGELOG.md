@@ -6,7 +6,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.1.1.1] - 2018-09-12
+## [0.1.1.3] - 2019-01-22
+### Added
+- Customizable middleware, pretty default request logging.
+
+## [0.1.1.2] - 2018-09-12
 ### Fixed
 - Processing of different versions for the same routes.
 
