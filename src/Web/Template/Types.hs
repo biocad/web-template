@@ -19,7 +19,7 @@ module Web.Template.Types
 
 import           Control.Monad.RWS   (RWST (..))
 import           Data.Text           as T (Text)
-import           Network.Wai         (Middleware, Response)
+import           Network.Wai         (Middleware)
 import           Web.Scotty.Trans    (ActionT, RoutePattern, ScottyT)
 import           Web.Template.Except (Except)
 
