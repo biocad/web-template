@@ -39,7 +39,9 @@ library
                      , text
                      , wai
                      , wai-extra
+                     , wai-logger
                      , warp
+                     , time
   default-language:    Haskell2010
 
 executable web-template
