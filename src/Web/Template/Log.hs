@@ -33,7 +33,7 @@ formatter :: OutputFormatter
 formatter zonedDate request status _ = do
     let msg' = requestMethod request <> " " <> rawPathInfo request <> " " <> (BS8.pack . show . statusCode $ status)
     let log' = Log (toIso zonedDate) (toUnixTime zonedDate) INFO "scotty" (decodeUtf8 msg')
-    toLogStr . format $ log'
+    (toLogStr . format $ log') <> "\n"
   where
     toIso :: ZonedDate -> Text
     toIso = pack . maybe "1970-01-01T00:00:00+0000" (formatTime defaultTimeLocale "%FT%T%z") . parseZonedDate
