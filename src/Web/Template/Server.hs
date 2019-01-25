@@ -6,8 +6,7 @@
 
 
 module Web.Template.Server
-  (
-    runWebServer
+  ( runWebServer
   , defaultHandleLog
   ) where
 
@@ -17,7 +16,7 @@ import           Data.String               (fromString)
 import           Data.Text.Encoding        (encodeUtf8)
 import           Data.Text.Lazy            as TL (Text, toStrict)
 import           Network.HTTP.Types.Status (status401)
-import           Network.Wai               (Response)
+import           Network.Wai               (Middleware)
 import           Network.Wai.Handler.Warp  (defaultSettings,
                                             exceptionResponseForDebug,
                                             setOnExceptionResponse, setPort)
@@ -31,15 +30,14 @@ import           Web.Template.Types
 
 -- | For given port and server settings run the server.
 runWebServer :: (Monoid w, Show w) => Port -> CustomWebServer r w s -> IO ()
-runWebServer port CustomWebServer{..} = do
-    customLog <- bcdlog
-    scottyOptsT (scottyOpts port) (handleLog . (\rws -> evalRWST rws readerEnv stateEnv)) $ do
-        middleware customLog
-        defaultHandler handleEx
-        mapM_ runRoute routes
+runWebServer port CustomWebServer {..} =
+  scottyOptsT (scottyOpts port) ((fst <$>) . (\rws -> evalRWST rws readerEnv stateEnv)) $ do
+      mapM_ middleware middlewares
+      defaultHandler handleEx
+      mapM_ runRoute routes
 
-defaultHandleLog :: Show w => IO (Response, w) -> IO Response
-defaultHandleLog = (print . snd <$>) >> (fst <$>)
+defaultHandleLog :: Middleware
+defaultHandleLog = bcdlog
 
 runRoute :: Monoid w => Route r w s -> ScottyM r w s ()
 runRoute Route{..} = method (fromString $ "/:version" ++ path) (checkVersion version . auth $ process)

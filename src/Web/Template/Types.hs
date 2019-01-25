@@ -19,7 +19,7 @@ module Web.Template.Types
 
 import           Control.Monad.RWS   (RWST (..))
 import           Data.Text           as T (Text)
-import           Network.Wai         (Response)
+import           Network.Wai         (Middleware)
 import           Web.Scotty.Trans    (ActionT, RoutePattern, ScottyT)
 import           Web.Template.Except (Except)
 
@@ -56,11 +56,11 @@ data Route r w s = Route { method  :: RoutePattern -> WebM r w s () -> ScottyT E
                          }
 
 -- | Contains environment and processing routes.
-data CustomWebServer r w s = CustomWebServer { readerEnv :: r
-                                             , writerEnv :: w
-                                             , stateEnv  :: s
-                                             , handleLog :: IO (Response, w) -> IO Response
-                                             , routes    :: [Route r w s]
+data CustomWebServer r w s = CustomWebServer { readerEnv   :: r
+                                             , writerEnv   :: w
+                                             , stateEnv    :: s
+                                             , middlewares :: [Middleware]
+                                             , routes      :: [Route r w s]
                                              }
 
 -----------------------------------------------------------------------------------------------------
