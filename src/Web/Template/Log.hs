@@ -32,14 +32,14 @@ bcdlog = unsafePerformIO $ mkRequestLogger def {outputFormat = CustomOutputForma
 formatter :: OutputFormatter
 formatter zonedDate request status _ = do
     let msg' = requestMethod request <> " " <> rawPathInfo request <> " " <> (BS8.pack . show . statusCode $ status)
-    let log' = Log (toIso zonedDate) (toUnixTime zonedDate) INFO "scotty" (decodeUtf8 msg')
+    let log' = Log (toIso zonedDate) (toMs zonedDate) INFO "scotty" (decodeUtf8 msg')
     (toLogStr . format $ log') <> "\n"
   where
     toIso :: ZonedDate -> Text
     toIso = pack . maybe "1970-01-01T00:00:00+0000" (formatTime defaultTimeLocale "%FT%T%z") . parseZonedDate
 
-    toUnixTime :: ZonedDate -> Int
-    toUnixTime = read . maybe "0" (formatTime defaultTimeLocale "%s") . parseZonedDate
+    toMs :: ZonedDate -> Int
+    toMs = (* 1000) . read . maybe "0" (formatTime defaultTimeLocale "%s") . parseZonedDate
 
     parseZonedDate :: ZonedDate -> Maybe ZonedTime
     parseZonedDate = parseTimeM True defaultTimeLocale "%d/%b/%Y:%H:%M:%S %z" . unpack . decodeUtf8
