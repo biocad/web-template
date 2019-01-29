@@ -9,10 +9,10 @@ import           Text.Printf       (printf)
 import           Web.Scotty.Trans  (get, text)
 import           Web.Template      (CustomWebServer (..),
                                     Process (..), ProcessRW, Route (..),
-                                    defaultHandleLog, runWebServer)
+                                    defaultHandleLog, runWebServer, restartOnError1)
 
 main :: IO ()
-main = runWebServer 5000 myWebServer
+main = restartOnError1 $ runWebServer 5000 myWebServer
   where
     rEnv = 0
     wEnv = ["Start server"]

@@ -8,12 +8,12 @@ module Web.Template.Types
   , Process (..)
   , Route (..)
   , CustomWebServer (..)
-  , EnvR, EnvW, EnvS, EnvRW, EnvRS, EnvWS
-  , WebR, WebW, WebS, WebRW, WebRS, WebWS
-  , ScottyR, ScottyW, ScottyS, ScottyRW, ScottyRS, ScottyWS
-  , ProcessR, ProcessW, ProcessS, ProcessRW, ProcessRS, ProcessWS
-  , RouteR, RouteW, RouteS, RouteRW, RouteRS, RouteWS
-  , CustomWebServerR, CustomWebServerW, CustomWebServerS
+  , EnvP, EnvR, EnvW, EnvS, EnvRW, EnvRS, EnvWS
+  , WebP, WebR, WebW, WebS, WebRW, WebRS, WebWS
+  , ScottyP, ScottyR, ScottyW, ScottyS, ScottyRW, ScottyRS, ScottyWS
+  , ProcessP, ProcessR, ProcessW, ProcessS, ProcessRW, ProcessRS, ProcessWS
+  , RouteP, RouteR, RouteW, RouteS, RouteRW, RouteRS, RouteWS
+  , CustomWebServerP, CustomWebServerR, CustomWebServerW, CustomWebServerS
   , CustomWebServerRW, CustomWebServerRS, CustomWebServerWS
   ) where
 
@@ -67,6 +67,10 @@ data CustomWebServer r w s = CustomWebServer { readerEnv   :: r
 -- DEFAULT TYPES --
 -----------------------------------------------------------------------------------------------------
 
+-- | Letter `P` stands from `pure`, ie no reader, writer and state
+
+type EnvP      = Env () () ()
+
 type EnvR r    = Env r () ()
 
 type EnvW w    = Env () w ()
@@ -80,6 +84,8 @@ type EnvRS r s = Env r () s
 type EnvWS w s = Env () w s
 
 ---------------------------------------------------
+
+type WebP a      = WebM () () () a
 
 type WebR r a    = WebM r () () a
 
@@ -95,6 +101,8 @@ type WebWS w s a = WebM () w s a
 
 ---------------------------------------------------
 
+type ScottyP a      = ScottyM () () () a
+
 type ScottyR r a    = ScottyM r () () a
 
 type ScottyW w a    = ScottyM () w () a
@@ -108,6 +116,8 @@ type ScottyRS r s a = ScottyM r () s a
 type ScottyWS w s a = ScottyM () w s a
 
 ---------------------------------------------------
+
+type ProcessP      = Process () () ()
 
 type ProcessR r    = Process r () ()
 
@@ -123,6 +133,8 @@ type ProcessWS w s = Process () w s
 
 ---------------------------------------------------
 
+type RouteP      = Route () () ()
+
 type RouteR r    = Route r () ()
 
 type RouteW w    = Route () w ()
@@ -136,6 +148,8 @@ type RouteRS r s = Route r () s
 type RouteWS w s = Route () w s
 
 ---------------------------------------------------
+
+type CustomWebServerP      = CustomWebServer () () ()
 
 type CustomWebServerR r    = CustomWebServer r () ()
 
