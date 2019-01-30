@@ -40,7 +40,8 @@ restartOnError :: IO () -> Int -> IO ()
 restartOnError f delayUs = f `catch` handle
   where
     handle :: SomeException -> IO ()
-    handle e = do putStrLn $ "Ooops: " ++ show e
+    handle e = do putStrLn $ "unexpected exception\n" ++ show e
+                  putStrLn $ "server will be restarted in " ++ show (delayUs * 10^6) ++ " second"
                   threadDelay delayUs
                   restartOnError f delayUs
 
