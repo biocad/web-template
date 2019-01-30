@@ -33,7 +33,7 @@ import           Web.Template.Types
 
 -- | Restart `f` on `error` after `1s`.
 restartOnError1 :: IO () -> IO ()
-restartOnError1 = flip restartOnError $ 10 ^ 6
+restartOnError1 = flip restartOnError $ (10 :: Int) ^ (6 :: Int)
 
 -- | Restart `f` on `error` after `delayUs`.
 restartOnError :: IO () -> Int -> IO ()
@@ -41,7 +41,7 @@ restartOnError f delayUs = f `catch` handle
   where
     handle :: SomeException -> IO ()
     handle e = do putStrLn $ "unexpected exception\n" ++ show e
-                  putStrLn $ "server will be restarted in " ++ show (delayUs * 10^6) ++ "s"
+                  putStrLn $ "server will be restarted in " ++ show delayUs ++ "us"
                   threadDelay delayUs
                   restartOnError f delayUs
 
