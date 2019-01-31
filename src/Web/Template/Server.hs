@@ -4,12 +4,15 @@
 {-# LANGUAGE RecordWildCards       #-}
 {-# LANGUAGE TypeSynonymInstances  #-}
 
-
 module Web.Template.Server
-  ( runWebServer
+  ( restartOnError
+  , restartOnError1
+  , runWebServer
   , defaultHandleLog
   ) where
 
+import           Control.Concurrent        (threadDelay)
+import           Control.Exception         (SomeException, catch)
 import           Control.Monad             (unless)
 import           Control.Monad.RWS         (evalRWST)
 import           Data.String               (fromString)
@@ -27,6 +30,20 @@ import           Web.Scotty.Trans          (Options (..), defaultHandler,
 import           Web.Template.Except       (JsonWebError (..), handleEx)
 import           Web.Template.Log          (bcdlog)
 import           Web.Template.Types
+
+-- | Restart `f` on `error` after `1s`.
+restartOnError1 :: IO () -> IO ()
+restartOnError1 = flip restartOnError $ (10 :: Int) ^ (6 :: Int)
+
+-- | Restart `f` on `error` after `delayUs`.
+restartOnError :: IO () -> Int -> IO ()
+restartOnError f delayUs = f `catch` handle
+  where
+    handle :: SomeException -> IO ()
+    handle e = do putStrLn $ "unexpected exception\n" ++ show e
+                  putStrLn $ "server will be restarted in " ++ show delayUs ++ "us"
+                  threadDelay delayUs
+                  restartOnError f delayUs
 
 -- | For given port and server settings run the server.
 runWebServer :: (Monoid w, Show w) => Port -> CustomWebServer r w s -> IO ()

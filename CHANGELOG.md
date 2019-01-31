@@ -6,6 +6,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.1.4] - 2019-01-28
+### Added
+- Implement `restartOnError`, add `pure` web monads.
+
 ## [0.1.1.3] - 2019-01-22
 ### Added
 - Customizable middleware, pretty default request logging.
