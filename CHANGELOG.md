@@ -6,6 +6,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.1.5] - 2019-08-8
+### Added
+- Added `toApplication` function - convert function from CustomWebServer to Application.
+
 ## [0.1.1.4] - 2019-01-28
 ### Added
 - Implement `restartOnError`, add `pure` web monads.
