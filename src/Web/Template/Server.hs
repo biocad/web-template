@@ -5,12 +5,12 @@
 {-# LANGUAGE TypeSynonymInstances  #-}
 
 module Web.Template.Server
-  ( restartOnError
-  , restartOnError1
-  , runWebServer
-  , defaultHandleLog
-  , toApplication
-  ) where
+    ( restartOnError
+    , restartOnError1
+    , runWebServer
+    , defaultHandleLog
+    , toApplication
+    ) where
 
 import           Control.Concurrent           (threadDelay)
 import           Control.Exception            (SomeException, catch)
@@ -45,10 +45,10 @@ restartOnError f delayUs = f `catch` handle
   where
     handle :: SomeException -> IO ()
     handle e = do
-      putStrLn $ "unexpected exception\n" ++ show e
-      putStrLn $ "server will be restarted in " ++ show delayUs ++ "us"
-      threadDelay delayUs
-      restartOnError f delayUs
+        putStrLn $ "unexpected exception\n" ++ show e
+        putStrLn $ "server will be restarted in " ++ show delayUs ++ "us"
+        threadDelay delayUs
+        restartOnError f delayUs
 
 -- | For given port and server settings run the server.
 runWebServer :: (Monoid w, Show w) => Port -> CustomWebServer r w s -> IO ()
@@ -59,9 +59,9 @@ toApplication s = scottyAppT (evalCustomWebServer s) (toScottyT s)
 
 toScottyT :: Monoid w => CustomWebServer r w s -> ScottyT Except (Env r w s) ()
 toScottyT CustomWebServer {..} = do
-  mapM_ middleware middlewares
-  defaultHandler handleEx
-  mapM_ runRoute routes
+    mapM_ middleware middlewares
+    defaultHandler handleEx
+    mapM_ runRoute routes
 
 evalCustomWebServer :: Monad m => CustomWebServer r w s -> RWST r w s m b1 -> m b1
 evalCustomWebServer CustomWebServer {..} = (fst <$>) . (\rws -> evalRWST rws readerEnv stateEnv)
@@ -80,19 +80,19 @@ scottyOpts port = Options 1 warpSettings
 auth :: Monoid w => Process r w s -> WebM r w s ()
 auth (Process p) = p
 auth (AuthProcess p) = do
-  cookiesM <- header "Cookie"
-  let idMaybe = cookiesM >>= getIdFromCookies
-  case idMaybe of
-    Just id' -> p id'
-    Nothing -> do
-      status status401
-      json . JsonWebError $ "Authorization failed"
+    cookiesM <- header "Cookie"
+    let idMaybe = cookiesM >>= getIdFromCookies
+    case idMaybe of
+        Just id' -> p id'
+        Nothing -> do
+            status status401
+            json . JsonWebError $ "Authorization failed"
 
 checkVersion :: Monoid w => Int -> WebM r w s () -> WebM r w s ()
 checkVersion version route = do
-  versionPath <- param "version"
-  unless ("v" ++ show version == versionPath) next
-  route
+    versionPath <- param "version"
+    unless ("v" ++ show version == versionPath) next
+    route
 
 getIdFromCookies :: TL.Text -> Maybe UserId
 getIdFromCookies cookies = lookup "id" $ parseCookiesText $ encodeUtf8 $ toStrict cookies
