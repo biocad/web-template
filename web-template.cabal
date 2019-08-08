@@ -37,7 +37,6 @@ library
                      , optparse-generic
                      , scotty
                      , text
-                     , transformers
                      , wai
                      , wai-extra
                      , wai-logger
