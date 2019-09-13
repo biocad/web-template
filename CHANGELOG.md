@@ -6,7 +6,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.1.1.5] - 2019-08-8
+## [0.1.1.6] - 2019-09-13
+### Added
+- `MonadWebError` type class with `throwJson` function.
+
+## [0.1.1.5] - 2019-08-08
 ### Added
 - Added `toApplication` function - convert function from CustomWebServer to Application.
 

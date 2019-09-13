@@ -42,3 +42,9 @@ Current environment: 0.%
 Ping!
 Authorised: 0000-0000-0000-000000000000.
 ```
+
+* example of throwing custom JSON error
+```
+>>> curl localhost:5000/v1/throw
+["error",42]
+```
