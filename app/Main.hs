@@ -7,9 +7,10 @@ import           Data.Text         (Text, pack)
 import           Data.Text.Lazy    (fromStrict)
 import           Text.Printf       (printf)
 import           Web.Scotty.Trans  (get, text)
-import           Web.Template      (CustomWebServer (..),
+import           Web.Template      (CustomWebServer (..), MonadWebError,
                                     Process (..), ProcessRW, Route (..),
-                                    defaultHandleLog, runWebServer, restartOnError1)
+                                    defaultHandleLog, restartOnError1,
+                                    runWebServer, throwJson500)
 
 main :: IO ()
 main = restartOnError1 $ runWebServer 5000 myWebServer
@@ -19,6 +20,7 @@ main = restartOnError1 $ runWebServer 5000 myWebServer
     myWebServer = CustomWebServer rEnv wEnv () [defaultHandleLog] [ Route get 1 "/ping" pingR
                                                                   , Route get 2 "/ping" pingR2
                                                                   , Route get 1 "/pong" pongR
+                                                                  , Route get 1 "/throw" throwR
                                                                   ]
 
 pingR :: ProcessRW Int [Text]
@@ -37,3 +39,12 @@ pongR :: ProcessRW Int [Text]
 pongR = AuthProcess $ \userId -> do
     lift $ tell ["Got /pong request"]
     text . fromStrict . pack $ printf "Ping!\nAuthorised: %s." userId
+
+-- Demonstration of MTL-style.
+-- Algorithm does not depend on ActionT, but can be called from it.
+algo :: MonadWebError m => m ()
+algo = throwJson500 ("error" :: String, 42 :: Int)
+
+throwR :: ProcessRW Int [Text]
+throwR = Process $ do
+    algo
