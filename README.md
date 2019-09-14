@@ -48,3 +48,9 @@ Authorised: 0000-0000-0000-000000000000.
 >>> curl localhost:5000/v1/throw
 ["error",42]
 ```
+
+* example of logging all exceptions
+```
+curl http://localhost:5000/v1/exception
+{"error":"error.exception"}
+```

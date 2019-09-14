@@ -6,6 +6,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.1.7] - 2019-09-14
+### Added
+- `bcdLogFast` middleware for logging with `fast-logger`.
+- Instance `MonadBCDLog WebM`. 
+### Changed
+- Request logger now logs request method, url and result status code as separate fields in JSON.
+- Request logger now logs request duration in milliseconds.
+
 ## [0.1.1.6] - 2019-09-13
 ### Added
 - `MonadWebError` type class with `throwJson` function.
