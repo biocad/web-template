@@ -6,6 +6,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.1.7] - 2019-09-18
+### Changed
+- `throwJson` type is more polymorphic to match `throwIO` and similar.
+
 ## [0.1.1.6] - 2019-09-13
 ### Added
 - `MonadWebError` type class with `throwJson` function.
