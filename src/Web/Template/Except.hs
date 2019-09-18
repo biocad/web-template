@@ -66,11 +66,11 @@ class MonadWebError m where
   -- | Throw any 'ToJSON'able value with custom HTTP code. The value will be sent
   -- directly as response without any additional formatting.
   --
-  throwJson :: (Show a, ToJSON a) => Status -> a -> m ()
+  throwJson :: (Show e, ToJSON e) => Status -> e -> m a
 
   -- | Specialized version of 'throwJson' that uses @500 Internal Server Error@ code.
   {-# INLINE throwJson500 #-}
-  throwJson500 :: (Show a, ToJSON a) => a -> m ()
+  throwJson500 :: (Show e, ToJSON e) => e -> m a
   throwJson500 = throwJson status500
 
 instance Monad m => MonadWebError (ActionT Except m) where
