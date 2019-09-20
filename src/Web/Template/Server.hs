@@ -9,6 +9,7 @@ module Web.Template.Server
     , restartOnError1
     , runWebServer
     , defaultHandleLog
+    , defaultHeaderCORS
     , toApplication
     ) where
 
@@ -19,8 +20,10 @@ import           Control.Monad.RWS         (RWST, evalRWST)
 import           Data.String               (fromString)
 import           Data.Text.Encoding        (encodeUtf8)
 import           Data.Text.Lazy            as TL (Text, toStrict)
+import           Network.HTTP.Types.Header (Header)
 import           Network.HTTP.Types.Status (status401)
-import           Network.Wai               (Application, Middleware)
+import           Network.Wai               (Application, Middleware,
+                                            mapResponseHeaders, modifyResponse)
 import           Network.Wai.Handler.Warp  (defaultSettings,
                                             exceptionResponseForDebug,
                                             setOnExceptionResponse, setPort)
@@ -66,6 +69,14 @@ evalCustomWebServer CustomWebServer {..} = (fst <$>) . (\rws -> evalRWST rws rea
 
 defaultHandleLog :: Middleware
 defaultHandleLog = bcdlog
+
+defaultHeaderCORS :: Middleware
+defaultHeaderCORS = modifyResponse (mapResponseHeaders addHeaderCORS)
+  where
+    addHeaderCORS :: [Header] -> [Header]
+    addHeaderCORS headers = case lookup "Access-Control-Allow-Origin" headers of
+        Just _  -> headers
+        Nothing -> ("Access-Control-Allow-Origin", "*") : headers
 
 runRoute :: Monoid w => Route r w s -> ScottyM r w s ()
 runRoute Route {..} = method (fromString $ "/:version" ++ path) (checkVersion version . auth $ process)

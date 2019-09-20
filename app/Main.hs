@@ -9,19 +9,23 @@ import           Text.Printf       (printf)
 import           Web.Scotty.Trans  (get, text)
 import           Web.Template      (CustomWebServer (..), MonadWebError,
                                     Process (..), ProcessRW, Route (..),
-                                    defaultHandleLog, restartOnError1,
-                                    runWebServer, throwJson500)
+                                    defaultHandleLog, defaultHeaderCORS,
+                                    restartOnError1, runWebServer, throwJson500)
 
 main :: IO ()
 main = restartOnError1 $ runWebServer 5000 myWebServer
   where
-    rEnv = 0
-    wEnv = ["Start server"]
-    myWebServer = CustomWebServer rEnv wEnv () [defaultHandleLog] [ Route get 1 "/ping" pingR
-                                                                  , Route get 2 "/ping" pingR2
-                                                                  , Route get 1 "/pong" pongR
-                                                                  , Route get 1 "/throw" throwR
-                                                                  ]
+    rEnv          = 0
+    wEnv          = ["Start server"]
+    myMiddlewares = [ defaultHandleLog  -- add this to use default logger
+                    , defaultHeaderCORS -- add header CORS to response
+                    ]
+    myRoutes      = [ Route get 1 "/ping" pingR
+                    , Route get 2 "/ping" pingR2
+                    , Route get 1 "/pong" pongR
+                    , Route get 1 "/throw" throwR
+                    ]
+    myWebServer = CustomWebServer rEnv wEnv () myMiddlewares myRoutes
 
 pingR :: ProcessRW Int [Text]
 pingR = Process $ do
