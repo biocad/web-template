@@ -6,6 +6,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.1.8] - 2019-09-20
+### Added
+- Middleware which adds CORS header to every response.
+
 ## [0.1.1.7] - 2019-09-18
 ### Changed
 - `throwJson` type is more polymorphic to match `throwIO` and similar.
