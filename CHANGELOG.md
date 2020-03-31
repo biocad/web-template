@@ -6,6 +6,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.1.9] - 2020-03-31
+### Fixed
+- Compilation with `--pedantic`.
+### Added
+- GitLab CI.
+
 ## [0.1.1.8] - 2019-09-20
 ### Added
 - Middleware which adds CORS header to every response.
