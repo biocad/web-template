@@ -11,4 +11,3 @@ flags: {}
 
 ghc-options:
   $locals: -Wall -fdiagnostics-color=always
-  $everything: -XNoMonadFailDesugaring

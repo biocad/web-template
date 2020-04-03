@@ -6,7 +6,6 @@ module Web.Template.Log
 
 import qualified Data.ByteString.Char8                as BS8 (pack)
 import           Data.Default                         (Default (..))
-import           Data.Monoid                          ((<>))
 import           Data.Text                            (Text, pack, unpack)
 import           Data.Text.Encoding                   (decodeUtf8)
 import           Data.Time                            (ZonedTime,
