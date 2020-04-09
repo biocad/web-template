@@ -4,13 +4,19 @@ module Web.Template.Log
   ( bcdlog
   ) where
 
+import           Data.Aeson                           (pairs, (.=))
+import           Data.Aeson.Encoding                  (encodingToLazyByteString)
 import qualified Data.ByteString.Char8                as BS8 (pack)
 import           Data.Default                         (Default (..))
 import           Data.Text                            (Text, pack, unpack)
 import           Data.Text.Encoding                   (decodeUtf8)
 import           Data.Time                            (ZonedTime,
                                                        defaultTimeLocale,
-                                                       formatTime, parseTimeM)
+                                                       formatTime,
+                                                       nominalDiffTimeToSeconds,
+                                                       parseTimeM,
+                                                       zonedTimeToUTC)
+import           Data.Time.Clock.POSIX                (utcTimeToPOSIXSeconds)
 import           Network.HTTP.Types.Status            (Status (..))
 import           Network.Wai                          (Middleware, rawPathInfo,
                                                        requestMethod)
@@ -30,15 +36,32 @@ bcdlog = unsafePerformIO $ mkRequestLogger def {outputFormat = CustomOutputForma
 
 formatter :: OutputFormatter
 formatter zonedDate request status _ = do
-    let msg' = requestMethod request <> " " <> rawPathInfo request <> " " <> (BS8.pack . show . statusCode $ status)
-    let log' = Log (toIso zonedDate) (toMs zonedDate) INFO "scotty" (decodeUtf8 msg')
-    (toLogStr . format $ log') <> "\n"
-  where
-    toIso :: ZonedDate -> Text
-    toIso = pack . maybe "1970-01-01T00:00:00+0000" (formatTime defaultTimeLocale "%FT%T%z") . parseZonedDate
+    let
+      zonedTime = parseZonedDate zonedDate
+      statusC   = statusCode status
+      method    = decodeUtf8 $ requestMethod request
+      url       = decodeUtf8 $ rawPathInfo request
+      msg'      = method <> " " <> url <> " " <> pack (show statusC)
 
-    toMs :: ZonedDate -> Int
-    toMs = (* 1000) . read . maybe "0" (formatTime defaultTimeLocale "%s") . parseZonedDate
+      -- Construct extended log record effectively by rendering directly to JSON, without
+      -- intermediate Value step.
+      res = pairs
+        (  "datetime"  .= toIso zonedTime
+        <> "timestamp" .= toMs zonedTime
+        <> "level"     .= INFO
+        <> "app"       .= ("scotty" :: Text)
+        <> "msg"       .= msg'
+        <> "status"    .= statusC
+        <> "url"       .= url
+        )
+
+    toLogStr (encodingToLazyByteString res) <> "\n"
+  where
+    toIso :: Maybe ZonedTime -> Text
+    toIso = pack . maybe "1970-01-01T00:00:00+0000" (formatTime defaultTimeLocale "%FT%T%z")
+
+    toMs :: Maybe ZonedTime -> Int
+    toMs = maybe 0 (floor . (1000 *) . nominalDiffTimeToSeconds . utcTimeToPOSIXSeconds . zonedTimeToUTC)
 
     parseZonedDate :: ZonedDate -> Maybe ZonedTime
     parseZonedDate = parseTimeM True defaultTimeLocale "%d/%b/%Y:%H:%M:%S %z" . unpack . decodeUtf8
