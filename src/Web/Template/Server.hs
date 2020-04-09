@@ -19,14 +19,17 @@ import           Control.Monad             (unless)
 import           Control.Monad.RWS         (RWST, evalRWST)
 import           Data.String               (fromString)
 import           Data.Text.Encoding        (encodeUtf8)
+import qualified Data.Text.IO              as TIO (putStrLn)
 import           Data.Text.Lazy            as TL (Text, toStrict)
 import           Network.HTTP.Types.Header (Header)
 import           Network.HTTP.Types.Status (status401)
-import           Network.Wai               (Application, Middleware,
+import           Network.Wai               (Application, Middleware, Request,
                                             mapResponseHeaders, modifyResponse)
 import           Network.Wai.Handler.Warp  (defaultSettings,
                                             exceptionResponseForDebug,
+                                            setOnException,
                                             setOnExceptionResponse, setPort)
+import           System.BCD.Log            (error')
 import           Web.Cookie                (parseCookiesText)
 import           Web.Scotty.Trans          (Options (..), ScottyT,
                                             defaultHandler, header, json,
@@ -84,7 +87,14 @@ runRoute Route {..} = method (fromString $ "/:version" ++ path) (checkVersion ve
 scottyOpts :: Port -> Options
 scottyOpts port = Options 1 warpSettings
   where
-    warpSettings = setOnExceptionResponse exceptionResponseForDebug . setPort port $ defaultSettings
+    warpSettings =
+      setOnException onException
+      . setOnExceptionResponse exceptionResponseForDebug
+      . setPort port
+      $ defaultSettings
+
+onException :: Maybe Request -> SomeException -> IO ()
+onException _ e = error' ("scotty" :: Text) $ show e
 
 auth :: Monoid w => Process r w s -> WebM r w s ()
 auth (Process p) = p
