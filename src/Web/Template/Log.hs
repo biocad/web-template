@@ -7,7 +7,8 @@ module Web.Template.Log
 import           Data.Aeson                           (pairs, (.=))
 import           Data.Aeson.Encoding                  (encodingToLazyByteString)
 import           Data.Default                         (Default (..))
-import           Data.Text                            (Text, pack, unpack)
+import           Data.Text                            as T (Text, pack, unpack,
+                                                            unwords)
 import           Data.Text.Encoding                   (decodeUtf8)
 import           Data.Time                            (ZonedTime,
                                                        defaultTimeLocale,
@@ -39,7 +40,7 @@ formatter zonedDate request status _ = do
       statusC   = statusCode status
       method    = decodeUtf8 $ requestMethod request
       url       = decodeUtf8 $ rawPathInfo request
-      msg'      = method <> " " <> url <> " " <> pack (show statusC)
+      msg'      = T.unwords [method, url, pack (show statusC)]
 
       -- Construct extended log record effectively by rendering directly to JSON, without
       -- intermediate Value step.
