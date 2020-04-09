@@ -55,8 +55,8 @@ restartOnError f delayUs = f `catch` handle
         -- Program should be killable by Ctrl-C.
         Just UserInterrupt -> return ()
         _ -> do
-            putStrLn $ "unexpected exception\n" ++ show e
-            putStrLn $ "server will be restarted in " ++ show delayUs ++ "us"
+            putStrLn $ "unexpected exception\n" <> show e
+            putStrLn $ "server will be restarted in " <> show delayUs <> "us"
             threadDelay delayUs
             restartOnError f delayUs
 
@@ -88,7 +88,7 @@ defaultHeaderCORS = modifyResponse (mapResponseHeaders addHeaderCORS)
         Nothing -> ("Access-Control-Allow-Origin", "*") : headers
 
 runRoute :: Monoid w => Route r w s -> ScottyM r w s ()
-runRoute Route {..} = method (fromString $ "/:version" ++ path) (checkVersion version . auth $ process)
+runRoute Route {..} = method (fromString $ "/:version" <> path) (checkVersion version . auth $ process)
 
 scottyOpts :: Port -> Options
 scottyOpts port = Options 1 warpSettings
@@ -116,7 +116,7 @@ auth (AuthProcess p) = do
 checkVersion :: Monoid w => Int -> WebM r w s () -> WebM r w s ()
 checkVersion version route = do
     versionPath <- param "version"
-    unless ("v" ++ show version == versionPath) next
+    unless ("v" <> show version == versionPath) next
     route
 
 getIdFromCookies :: TL.Text -> Maybe UserId

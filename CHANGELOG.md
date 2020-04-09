@@ -6,6 +6,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.2.0] - 2020-04-09
+### Changed
+- `warp` is configured to print exceptions to `stdout` in json format;
+- `restartOnError` does not restart on `Ctrl-C`;
+- `defaultHandleLog` prints `status` and `url` in separate json fields.
+
 ## [0.1.1.9] - 2020-03-31
 ### Fixed
 - Compilation with `--pedantic`.
