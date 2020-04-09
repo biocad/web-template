@@ -14,7 +14,9 @@ module Web.Template.Server
     ) where
 
 import           Control.Concurrent        (threadDelay)
-import           Control.Exception         (SomeException, catch)
+import           Control.Exception         (AsyncException (..),
+                                            SomeException (..), catch,
+                                            fromException)
 import           Control.Monad             (unless)
 import           Control.Monad.RWS         (RWST, evalRWST)
 import           Data.String               (fromString)
@@ -48,11 +50,15 @@ restartOnError :: IO () -> Int -> IO ()
 restartOnError f delayUs = f `catch` handle
   where
     handle :: SomeException -> IO ()
-    handle e = do
-        putStrLn $ "unexpected exception\n" ++ show e
-        putStrLn $ "server will be restarted in " ++ show delayUs ++ "us"
-        threadDelay delayUs
-        restartOnError f delayUs
+    handle e =
+      case fromException e of
+        -- Program should be killable by Ctrl-C.
+        Just UserInterrupt -> return ()
+        _ -> do
+            putStrLn $ "unexpected exception\n" ++ show e
+            putStrLn $ "server will be restarted in " ++ show delayUs ++ "us"
+            threadDelay delayUs
+            restartOnError f delayUs
 
 -- | For given port and server settings run the server.
 runWebServer :: (Monoid w, Show w) => Port -> CustomWebServer r w s -> IO ()
