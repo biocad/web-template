@@ -6,7 +6,6 @@ module Web.Template.Log
 
 import           Data.Aeson                           (pairs, (.=))
 import           Data.Aeson.Encoding                  (encodingToLazyByteString)
-import qualified Data.ByteString.Char8                as BS8 (pack)
 import           Data.Default                         (Default (..))
 import           Data.Text                            (Text, pack, unpack)
 import           Data.Text.Encoding                   (decodeUtf8)
@@ -25,8 +24,7 @@ import           Network.Wai.Middleware.RequestLogger (OutputFormat (..),
                                                        OutputFormatter,
                                                        mkRequestLogger,
                                                        outputFormat)
-import           System.BCD.Log                       (Level (..), Log (..),
-                                                       format)
+import           System.BCD.Log                       (Level (..))
 import           System.IO.Unsafe                     (unsafePerformIO)
 import           System.Log.FastLogger                (toLogStr)
 
