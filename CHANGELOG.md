@@ -6,6 +6,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.2.1] - 2020-04-15
+### Added
+- `runWebServerWith` function that runs a web server with custom Warp settings.
+
 ## [0.1.2.0] - 2020-04-09
 ### Changed
 - `warp` is configured to print exceptions to `stdout` in json format;
