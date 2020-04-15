@@ -2,12 +2,12 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE OverloadedStrings     #-}
 {-# LANGUAGE RecordWildCards       #-}
-{-# LANGUAGE TypeSynonymInstances  #-}
 
 module Web.Template.Server
     ( restartOnError
     , restartOnError1
     , runWebServer
+    , runWebServerWith
     , defaultHandleLog
     , defaultHeaderCORS
     , toApplication
@@ -26,7 +26,7 @@ import           Network.HTTP.Types.Header (Header)
 import           Network.HTTP.Types.Status (status401)
 import           Network.Wai               (Application, Middleware, Request,
                                             mapResponseHeaders, modifyResponse)
-import           Network.Wai.Handler.Warp  (defaultSettings,
+import           Network.Wai.Handler.Warp  (Settings, defaultSettings,
                                             exceptionResponseForDebug,
                                             setOnException,
                                             setOnExceptionResponse, setPort)
@@ -59,9 +59,21 @@ restartOnError f delayUs = f `catch` handle
             threadDelay delayUs
             restartOnError f delayUs
 
--- | For given port and server settings run the server.
+-- | For given port and server settings run the server with default timeout (30 seconds).
 runWebServer :: (Monoid w, Show w) => Port -> CustomWebServer r w s -> IO ()
-runWebServer port s = scottyOptsT (scottyOpts port) (evalCustomWebServer s) (toScottyT s)
+runWebServer port s = scottyOptsT (scottyOpts port id) (evalCustomWebServer s) (toScottyT s)
+
+-- | For given user settings, port and server settings run the server.
+-- Setting port and exception handler via @userSettings@ will have no effect.
+-- Use @port@ to set up port instead.
+--
+runWebServerWith
+  :: (Monoid w, Show w)
+  => (Settings -> Settings)
+  -> Port
+  -> CustomWebServer r w s
+  -> IO ()
+runWebServerWith userSettings port s = scottyOptsT (scottyOpts port userSettings) (evalCustomWebServer s) (toScottyT s)
 
 toApplication :: (Monoid w, Show w) => CustomWebServer r w s -> IO Application
 toApplication s = scottyAppT (evalCustomWebServer s) (toScottyT s)
@@ -89,13 +101,17 @@ defaultHeaderCORS = modifyResponse (mapResponseHeaders addHeaderCORS)
 runRoute :: Monoid w => Route r w s -> ScottyM r w s ()
 runRoute Route {..} = method (fromString $ "/:version" <> path) (checkVersion version . auth $ process)
 
-scottyOpts :: Port -> Options
-scottyOpts port = Options 1 warpSettings
+-- | Create @Options@ with given port and timeout.
+-- If no timeout is given, it will be set to Warp's default (30 seconds).
+--
+scottyOpts :: Port -> (Settings -> Settings) -> Options
+scottyOpts port userSettings = Options 1 warpSettings
   where
     warpSettings =
       setOnException onException
       . setOnExceptionResponse exceptionResponseForDebug
       . setPort port
+      . userSettings
       $ defaultSettings
 
 onException :: Maybe Request -> SomeException -> IO ()
