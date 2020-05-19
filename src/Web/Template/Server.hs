@@ -14,8 +14,7 @@ module Web.Template.Server
     ) where
 
 import           Control.Concurrent        (threadDelay)
-import           Control.Exception         (AsyncException (..),
-                                            SomeException (..), catch,
+import           Control.Exception         (AsyncException (..), SomeException (..), catch,
                                             fromException)
 import           Control.Monad             (unless)
 import           Control.Monad.RWS         (RWST, evalRWST)
@@ -24,18 +23,16 @@ import           Data.Text.Encoding        (encodeUtf8)
 import           Data.Text.Lazy            as TL (Text, toStrict)
 import           Network.HTTP.Types.Header (Header)
 import           Network.HTTP.Types.Status (status401)
-import           Network.Wai               (Application, Middleware, Request,
-                                            mapResponseHeaders, modifyResponse)
-import           Network.Wai.Handler.Warp  (Settings, defaultSettings,
-                                            exceptionResponseForDebug,
-                                            setOnException,
+import           Network.Wai               (Application, Middleware, Request, mapResponseHeaders,
+                                            modifyResponse)
+import           Network.Wai.Handler.Warp  (InvalidRequest (..), Settings, defaultSettings,
+                                            exceptionResponseForDebug, setOnException,
                                             setOnExceptionResponse, setPort)
 import           System.BCD.Log            (error')
 import           Web.Cookie                (parseCookiesText)
-import           Web.Scotty.Trans          (Options (..), ScottyT,
-                                            defaultHandler, header, json,
-                                            middleware, next, param, scottyAppT,
-                                            scottyOptsT, status)
+import           Web.Scotty.Trans          (Options (..), ScottyT, defaultHandler, header, json,
+                                            middleware, next, param, scottyAppT, scottyOptsT,
+                                            status)
 import           Web.Template.Except       (Except, JsonWebError (..), handleEx)
 import           Web.Template.Log          (bcdlog)
 import           Web.Template.Types
@@ -115,7 +112,12 @@ scottyOpts port userSettings = Options 1 warpSettings
       $ defaultSettings
 
 onException :: Maybe Request -> SomeException -> IO ()
-onException _ e = error' ("scotty" :: Text) $ show e
+onException _ e =
+  case fromException e of
+    -- This exception happens too often when using Chrome, thus we better ignore it.
+    -- See https://github.com/yesodweb/wai/issues/421
+    Just ConnectionClosedByPeer -> return ()
+    _ -> error' ("scotty" :: Text) $ show e
 
 auth :: Monoid w => Process r w s -> WebM r w s ()
 auth (Process p) = p
