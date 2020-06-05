@@ -21,6 +21,7 @@ cabal-version:       >=1.10
 library
   hs-source-dirs:      src
   exposed-modules:     Web.Template
+                     , Web.Template.Wai
   other-modules:       Web.Template.Except
                      , Web.Template.Server
                      , Web.Template.Types
@@ -42,6 +43,7 @@ library
                      , warp
                      , time
   default-language:    Haskell2010
+  default-extensions:  OverloadedStrings
 
 executable web-template
   hs-source-dirs:      app
