@@ -9,6 +9,7 @@ module Web.Template.Servant
   ) where
 
 import Data.Proxy               (Proxy (..))
+import Network.Wai              (Application)
 import Network.Wai.Handler.Warp (Settings, runSettings)
 import Servant.Server           (ErrorFormatters, HasServer, Server, serveWithContext)
 
@@ -26,18 +27,19 @@ runServantServer
   => Port
   -> Server api
   -> IO ()
-runServantServer = runServantServerWith @api id
+runServantServer = runServantServerWith @api id (defaultHeaderCORS . defaultHandleLog)
 
 runServantServerWith
   :: forall api
   .  (HasServer api '[ErrorFormatters])
   => (Settings -> Settings)
+  -> (Application -> Application)
+     -- ^ Middlewares
   -> Port
   -> Server api
   -> IO ()
-runServantServerWith userSettings port server =
+runServantServerWith userSettings middlewares port server =
   runSettings (warpSettings port userSettings)
-    $ defaultHandleLog
-    $ defaultHeaderCORS
+    $ middlewares
     $ serveWithContext @api Proxy cbdContext
     $ server
