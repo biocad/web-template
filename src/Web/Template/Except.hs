@@ -73,6 +73,6 @@ class MonadWebError m where
   throwJson500 :: (Show e, ToJSON e) => e -> m a
   throwJson500 = throwJson status500
 
-instance Monad m => MonadWebError (ActionT Except m) where
+instance {-# OVERLAPPING #-} Monad m => MonadWebError (ActionT Except m) where
   {-# INLINE throwJson #-}
   throwJson s e = raise $ CustomJsonException s e

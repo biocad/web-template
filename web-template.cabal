@@ -28,6 +28,7 @@ library
                      , Web.Template.Servant.Aeson
                      , Web.Template.Servant.Auth
                      , Web.Template.Servant.Error
+                     , Web.Template.Servant.Error.Instance
   other-modules:       Web.Template.Except
                      , Web.Template.Server
                      , Web.Template.Types
