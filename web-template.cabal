@@ -27,6 +27,7 @@ library
                      , Web.Template.Servant.API
                      , Web.Template.Servant.Aeson
                      , Web.Template.Servant.Auth
+                     , Web.Template.Servant.Error
   other-modules:       Web.Template.Except
                      , Web.Template.Server
                      , Web.Template.Types
@@ -43,12 +44,11 @@ library
                      , http-types
                      , lens
                      , mtl
+                     , openapi3
                      , scotty
-                     , servant >= 0.17
-                     , servant-server >= 0.17
-                     , servant-swagger
-                     , servant-swagger-ui
-                     , swagger2
+                     , servant >= 0.18
+                     , servant-openapi3
+                     , servant-server >= 0.18
                      , text
                      , time
                      , wai
@@ -88,9 +88,9 @@ executable web-template-servant
   build-depends:       base
                      , aeson
                      , servant-server
-                     , servant-swagger
-                     , servant-swagger-ui
-                     , swagger2
+                     , servant-openapi3
+                     --, servant-swagger-ui
+                     , openapi3
                      , text
                      , wai
                      , warp

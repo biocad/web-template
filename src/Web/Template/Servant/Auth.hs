@@ -10,16 +10,17 @@ import Data.Proxy    (Proxy (..))
 import Data.Text     (Text)
 import GHC.Generics  (Generic)
 
-import Data.Swagger.Internal   (ApiKeyLocation (..), ApiKeyParams (..), SecurityRequirement (..),
-                                SecurityScheme (..), SecuritySchemeType (..))
-import Data.Swagger.Lens       (description, security, securityDefinitions)
-import Data.Swagger.Operation  (allOperations, setResponse)
-import Network.Wai             (requestHeaders)
-import Servant.API             ((:>))
-import Servant.Server          (HasServer (..), ServerError (..), err401)
-import Servant.Server.Internal (addAuthCheck, delayedFailFatal, withRequest)
-import Servant.Swagger         (HasSwagger (..))
-import Web.Cookie              (parseCookiesText)
+import Data.OpenApi.Internal     (ApiKeyLocation (..), ApiKeyParams (..), SecurityRequirement (..),
+                                  SecurityScheme (..), SecuritySchemeType (..))
+import Data.OpenApi.Lens         (components, description, security, securitySchemes)
+import Data.OpenApi.Operation    (allOperations, setResponse)
+import Network.HTTP.Types.Header (hContentType)
+import Network.Wai               (requestHeaders)
+import Servant.API               ((:>))
+import Servant.OpenApi           (HasOpenApi (..))
+import Servant.Server            (HasServer (..), ServerError (..), err401)
+import Servant.Server.Internal   (addAuthCheck, delayedFailFatal, withRequest)
+import Web.Cookie                (parseCookiesText)
 
 -- | Add authenthication via @id@ Cookie.
 --
@@ -42,21 +43,23 @@ instance HasServer api context => HasServer (CbdAuth :> api) context where
     route @api Proxy context
       $ addAuthCheck sub
       $ withRequest $ \req ->
-          -- TODO json error
-          maybe (delayedFailFatal $ err401 { errBody = "Authorization failed" }) return $
+          maybe (delayedFailFatal err) return $
             lookup "cookie" (requestHeaders req)
               <&> parseCookiesText
               >>= lookup "id"
               <&> UserId
+    where
+      err = err401
+        { errBody = "{\"error\": \"Authorization failed\"}"
+        , errHeaders = [(hContentType, "application/json")]
+        }
 
--- FIXME swagger does not support describing cookies at all
--- Only OpenAPI 3.0 does
-instance HasSwagger api => HasSwagger (CbdAuth :> api) where
-  toSwagger _ = toSwagger @api Proxy
-    & securityDefinitions . at "cbdCookie" ?~ idCookie
+instance HasOpenApi api => HasOpenApi (CbdAuth :> api) where
+  toOpenApi _ = toOpenApi @api Proxy
+    & components . securitySchemes . at "cbdCookie" ?~ idCookie
     & allOperations . security .~ [SecurityRequirement $ mempty & at "cbdCookie" ?~ []]
     & setResponse 401 (return $ mempty & description .~ "Authorization failed")
     where
       idCookie = SecurityScheme
-        (SecuritySchemeApiKey (ApiKeyParams "Cookie" ApiKeyHeader))
+        (SecuritySchemeApiKey (ApiKeyParams "id" ApiKeyCookie))
         (Just "`id` cookie")

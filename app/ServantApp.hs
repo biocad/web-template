@@ -3,23 +3,22 @@
 {-# LANGUAGE TypeApplications  #-}
 {-# LANGUAGE TypeOperators     #-}
 
-import Data.Proxy               (Proxy (..))
-import Data.Swagger             (Swagger)
-import Data.Text                (Text)
-import Network.Wai.Handler.Warp (runSettings)
-import Servant                  ((:<|>) (..), (:>), Description, Get, Handler, PlainText, Summary,
-                                 serve)
-import Servant.Swagger          (toSwagger)
-import Servant.Swagger.UI       (SwaggerSchemaUI, swaggerSchemaUIServer)
+import Data.Aeson      (encode)
+import Data.OpenApi    (OpenApi)
+import Data.Proxy      (Proxy (..))
+import Data.Text       (Text)
+import Servant         ((:<|>) (..), (:>), Description, Get, Handler, JSON, PlainText, Post,
+                        ReqBody, Summary)
+import Servant.OpenApi (toOpenApi)
+--import Servant.OpenApi.UI       (OpenApiSchemaUI, swaggerSchemaUIServer)
 
-import Web.Template.Servant.API  (Version)
-import Web.Template.Servant.Auth (CbdAuth, UserId (..))
-import Web.Template.Wai          (defaultHandleLog, defaultHeaderCORS, warpSettings)
+import Web.Template.Servant (Version, CbdAuth, UserId(..), runServantServer)
 
 type API = Version "1" :>
   ( Summary "ping route" :> Description "Returns pong" :> "ping" :> Get '[PlainText] Text
   :<|> CbdAuth :>
     ( Summary "hello route" :> Description "Returns hello + user id" :> "hello" :> Get '[PlainText] Text
+    :<|> "post" :> ReqBody '[JSON] Int :> Post '[JSON] Text
     )
   )
 
@@ -29,13 +28,15 @@ pingH = return "pong!"
 helloH :: UserId -> Handler Text
 helloH (UserId userId) = return $ "Hello " <> userId
 
-swagger :: Swagger
-swagger = toSwagger @API Proxy
+postH :: UserId -> Int -> Handler Text
+postH _ _ = return "Foo"
+
+swagger :: OpenApi
+swagger = toOpenApi @API Proxy
 
 main :: IO ()
-main =
-  runSettings (warpSettings 5000 id)
-    $ defaultHandleLog
-    $ defaultHeaderCORS
-    $ serve @(SwaggerSchemaUI "swagger-ui" "swagger.json" :<|> API) Proxy
-    $ swaggerSchemaUIServer swagger :<|> pingH :<|> helloH
+main = do
+  print $ encode swagger
+
+  runServantServer @API 5000
+    $ pingH :<|> (\userId -> helloH userId :<|> postH userId)

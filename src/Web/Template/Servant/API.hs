@@ -2,14 +2,14 @@ module Web.Template.Servant.API where
 
 import Control.Lens  ((?~))
 import Data.Function ((&))
+import Data.OpenApi  (applyTags, description)
 import Data.Proxy    (Proxy (..))
 import Data.String   (fromString)
-import Data.Swagger  (applyTags, description)
 import Data.Text     (pack)
 import GHC.TypeLits  (AppendSymbol, KnownSymbol, Symbol, symbolVal)
 
 import Servant         ((:>), HasServer (..))
-import Servant.Swagger (HasSwagger (..))
+import Servant.OpenApi (HasOpenApi (..))
 
 -- | Prepend version to every sub-route.
 --
@@ -29,6 +29,6 @@ instance HasServer api context => HasServer (Tag tag descr :> api) context where
   route _ = route @api Proxy
   hoistServerWithContext _ = hoistServerWithContext @api Proxy
 
-instance (KnownSymbol tag, KnownSymbol descr, HasSwagger api) => HasSwagger (Tag tag descr :> api) where
-  toSwagger _ = toSwagger @api Proxy
+instance (KnownSymbol tag, KnownSymbol descr, HasOpenApi api) => HasOpenApi (Tag tag descr :> api) where
+  toOpenApi _ = toOpenApi @api Proxy
     & applyTags [fromString (symbolVal @tag Proxy) & description ?~ pack (symbolVal @descr Proxy)]

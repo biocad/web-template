@@ -7,9 +7,8 @@ import Data.Functor      ((<&>))
 import Data.Proxy        (Proxy (..))
 import GHC.Generics
 
-import Data.Swagger
-import Data.Swagger.Internal.Schema
-import Data.Swagger.Internal.TypeShape (TypeHasSimpleShape)
+import Data.OpenApi
+import Data.OpenApi.Internal.Schema
 
 -- | This wrapper is intended to be used with @DerivingVia@ to make
 -- consistent 'ToJSON', 'FromJSON' and 'ToSchema' for some data type.
@@ -37,7 +36,7 @@ instance (Generic a, GToJSON Zero (Rep a), GToEncoding Zero (Rep a)) => ToJSON (
 instance (Generic a, GFromJSON Zero (Rep a)) => FromJSON (CamelCaseAeson a) where
   parseJSON = fmap CamelCaseAeson . genericParseJSON prefixOptions
 
-instance (Generic a, GToSchema (Rep a), TypeHasSimpleShape a "genericDeclareNamedSchemaUnrestricted") => ToSchema (CamelCaseAeson a) where
+instance (Generic a, GToSchema (Rep a)) => ToSchema (CamelCaseAeson a) where
     declareNamedSchema _ =
       genericDeclareNamedSchema @a (fromAesonOptions prefixOptions) Proxy
 
