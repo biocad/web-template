@@ -3,6 +3,9 @@ module Web.Template.Servant
   , runServantServerWith
   , runServantServerWithContext
 
+  , OpenApiSchemaUI
+  , openapiSchemaUIServer
+
   , module Web.Template.Servant.Aeson
   , module Web.Template.Servant.API
   , module Web.Template.Servant.Auth
@@ -12,14 +15,15 @@ module Web.Template.Servant
 import Data.Proxy               (Proxy (..))
 import Network.Wai              (Application)
 import Network.Wai.Handler.Warp (Settings, runSettings)
-import Servant.Server           (DefaultErrorFormatters, HasContextEntry, type (.++), Context, ErrorFormatters, HasServer, Server,
-                                 serveWithContext, (.++))
+import Servant.OpenAPI.UI       (OpenApiSchemaUI, openapiSchemaUIServer)
+import Servant.Server           (Context, DefaultErrorFormatters, ErrorFormatters, HasContextEntry,
+                                 HasServer, Server, serveWithContext, type (.++), (.++))
 
 import Web.Template.Types (Port)
 import Web.Template.Wai   (defaultHandleLog, defaultHeaderCORS, warpSettings)
 
-import Web.Template.Servant.Aeson
 import Web.Template.Servant.API
+import Web.Template.Servant.Aeson
 import Web.Template.Servant.Auth
 import Web.Template.Servant.Error
 

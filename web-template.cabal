@@ -48,6 +48,7 @@ library
                      , openapi3
                      , scotty
                      , servant >= 0.18
+                     , servant-openapi-ui >= 0.3.4
                      , servant-openapi3
                      , servant-server >= 0.18
                      , text
@@ -88,10 +89,10 @@ executable web-template-servant
   ghc-options:         -threaded -rtsopts
   build-depends:       base
                      , aeson
-                     , servant-server
-                     , servant-openapi3
-                     --, servant-swagger-ui
                      , openapi3
+                     , servant-openapi-ui
+                     , servant-openapi3
+                     , servant-server
                      , text
                      , wai
                      , warp
