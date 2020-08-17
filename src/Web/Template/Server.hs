@@ -9,6 +9,7 @@ module Web.Template.Server
     , runWebServer
     , runWebServerWith
     , defaultHandleLog
+    , defaultHandleLog400
     , defaultHeaderCORS
     , toApplication
     ) where
@@ -34,7 +35,7 @@ import           Web.Scotty.Trans          (Options (..), ScottyT, defaultHandle
                                             middleware, next, param, scottyAppT, scottyOptsT,
                                             status)
 import           Web.Template.Except       (Except, JsonWebError (..), handleEx)
-import           Web.Template.Log          (bcdlog)
+import           Web.Template.Log          (bcdlog, bcdlog400)
 import           Web.Template.Types
 
 -- | Restart `f` on `error` after `1s`.
@@ -86,6 +87,11 @@ evalCustomWebServer CustomWebServer {..} = (fst <$>) . (\rws -> evalRWST rws rea
 
 defaultHandleLog :: Middleware
 defaultHandleLog = bcdlog
+
+-- | Log everything as 'defaultHandleLog' and also log response bodies for
+-- 4xx and 5xx responses.
+defaultHandleLog400 :: Middleware
+defaultHandleLog400 = bcdlog400
 
 defaultHeaderCORS :: Middleware
 defaultHeaderCORS = modifyResponse (mapResponseHeaders addHeaderCORS)
