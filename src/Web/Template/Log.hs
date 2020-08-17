@@ -2,28 +2,25 @@
 
 module Web.Template.Log
   ( bcdlog
+  , bcdlog400
   ) where
 
 import           Data.Aeson                           (pairs, (.=))
 import           Data.Aeson.Encoding                  (encodingToLazyByteString)
+import           Data.ByteString.Builder              (toLazyByteString)
 import           Data.Default                         (Default (..))
-import           Data.Text                            as T (Text, pack, unpack,
-                                                            unwords)
+import           Data.Text                            as T (Text, pack, unpack, unwords)
 import           Data.Text.Encoding                   (decodeUtf8)
-import           Data.Time                            (ZonedTime,
-                                                       defaultTimeLocale,
-                                                       formatTime,
-                                                       nominalDiffTimeToSeconds,
-                                                       parseTimeM,
+import qualified Data.Text.Lazy.Encoding              as TLE (decodeUtf8)
+import           Data.Time                            (ZonedTime, defaultTimeLocale, formatTime,
+                                                       nominalDiffTimeToSeconds, parseTimeM,
                                                        zonedTimeToUTC)
 import           Data.Time.Clock.POSIX                (utcTimeToPOSIXSeconds)
 import           Network.HTTP.Types.Status            (Status (..))
-import           Network.Wai                          (Middleware, rawPathInfo,
-                                                       requestMethod)
+import           Network.Wai                          (Middleware, rawPathInfo, requestMethod)
 import           Network.Wai.Logger                   (ZonedDate)
 import           Network.Wai.Middleware.RequestLogger (OutputFormat (..),
-                                                       OutputFormatter,
-                                                       mkRequestLogger,
+                                                       OutputFormatterWithDetails, mkRequestLogger,
                                                        outputFormat)
 import           System.BCD.Log                       (Level (..))
 import           System.IO.Unsafe                     (unsafePerformIO)
@@ -31,10 +28,18 @@ import           System.Log.FastLogger                (toLogStr)
 
 {-# NOINLINE bcdlog #-}
 bcdlog :: Middleware
-bcdlog = unsafePerformIO $ mkRequestLogger def {outputFormat = CustomOutputFormat formatter}
+bcdlog = unsafePerformIO $ mkRequestLogger def
+  { outputFormat = CustomOutputFormatWithDetails $ formatter False
+  }
 
-formatter :: OutputFormatter
-formatter zonedDate request status _ = do
+{-# NOINLINE bcdlog400 #-}
+bcdlog400 :: Middleware
+bcdlog400 = unsafePerformIO $ mkRequestLogger def
+  { outputFormat = CustomOutputFormatWithDetails $ formatter True
+  }
+
+formatter :: Bool -> OutputFormatterWithDetails
+formatter log400 zonedDate request status _ _ _ respBody = do
     let
       zonedTime = parseZonedDate zonedDate
       statusC   = statusCode status
@@ -52,6 +57,9 @@ formatter zonedDate request status _ = do
         <> "msg"       .= msg'
         <> "status"    .= statusC
         <> "url"       .= url
+        <> if log400 && statusC >= 400
+              then "response" .= (TLE.decodeUtf8 $ toLazyByteString respBody)
+              else mempty
         )
 
     toLogStr (encodingToLazyByteString res) <> "\n"
