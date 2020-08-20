@@ -1,6 +1,7 @@
 module Web.Template.Servant
   ( runServantServer
   , runServantServerWith
+  , runServantServerWithContext
 
   , module Web.Template.Servant.Aeson
   , module Web.Template.Servant.API
@@ -11,7 +12,8 @@ module Web.Template.Servant
 import Data.Proxy               (Proxy (..))
 import Network.Wai              (Application)
 import Network.Wai.Handler.Warp (Settings, runSettings)
-import Servant.Server           (ErrorFormatters, HasServer, Server, serveWithContext)
+import Servant.Server           (DefaultErrorFormatters, HasContextEntry, type (.++), Context, ErrorFormatters, HasServer, Server,
+                                 serveWithContext, (.++))
 
 import Web.Template.Types (Port)
 import Web.Template.Wai   (defaultHandleLog, defaultHeaderCORS, warpSettings)
@@ -42,4 +44,20 @@ runServantServerWith userSettings middlewares port server =
   runSettings (warpSettings port userSettings)
     $ middlewares
     $ serveWithContext @api Proxy cbdContext
+    $ server
+
+runServantServerWithContext
+  :: forall api ctx
+  .  (HasServer api (ctx .++ '[ErrorFormatters]), HasContextEntry ((ctx .++ '[ErrorFormatters]) .++ DefaultErrorFormatters) ErrorFormatters)
+  => (Settings -> Settings)
+  -> (Application -> Application)
+     -- ^ Middlewares
+  -> Port
+  -> Context ctx
+  -> Server api
+  -> IO ()
+runServantServerWithContext userSettings middlewares port ctx server =
+  runSettings (warpSettings port userSettings)
+    $ middlewares
+    $ serveWithContext @api Proxy (ctx .++ cbdContext)
     $ server
