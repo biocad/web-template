@@ -46,6 +46,7 @@ library
                      , lens
                      , mtl
                      , openapi3
+                     , resourcet
                      , scotty
                      , servant >= 0.18
                      , servant-openapi-ui >= 0.3.4
