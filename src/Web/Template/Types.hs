@@ -17,11 +17,11 @@ module Web.Template.Types
   , CustomWebServerRW, CustomWebServerRS, CustomWebServerWS
   ) where
 
-import           Control.Monad.RWS   (RWST (..))
-import           Data.Text           as T (Text)
-import           Network.Wai         (Middleware)
-import           Web.Scotty.Trans    (ActionT, RoutePattern, ScottyT)
-import           Web.Template.Except (Except)
+import Control.Monad.RWS   (RWST (..))
+import Data.Text           as T (Text)
+import Network.Wai         (Middleware)
+import Web.Scotty.Trans    (ActionT, RoutePattern, ScottyT)
+import Web.Template.Except (Except)
 
 -- | Alias for UserId.
 type UserId = T.Text
@@ -40,8 +40,9 @@ type ScottyM r w s a = ScottyT Except (Env r w s) a
 
 -- | 'Process' encapsulates what we what to do inside 'Route'.
 --   If your need to check authorization then use 'AuthProcess' constructor.
-data Process r w s = Process (WebM r w s ())
-                   | AuthProcess (UserId -> WebM r w s ())
+data Process r w s
+  = Process (WebM r w s ())
+  | AuthProcess (UserId -> WebM r w s ())
 
 -- | 'Route' include every needed information to make some stuff with request. It includes:
 -- * environment @env@ that we can store and use (for example, connections for databases);
@@ -49,19 +50,23 @@ data Process r w s = Process (WebM r w s ())
 -- * version of path (it should be like `/v{Integer}/`);
 -- * path (just name of path);
 -- * process (what should we do with request).
-data Route r w s = Route { method  :: RoutePattern -> WebM r w s () -> ScottyT Except (Env r w s) ()
-                         , version :: Int
-                         , path    :: String
-                         , process :: Process r w s
-                         }
+data Route r w s
+  = Route
+      { method  :: RoutePattern -> WebM r w s () -> ScottyT Except (Env r w s) ()
+      , version :: Int
+      , path    :: String
+      , process :: Process r w s
+      }
 
 -- | Contains environment and processing routes.
-data CustomWebServer r w s = CustomWebServer { readerEnv   :: r
-                                             , writerEnv   :: w
-                                             , stateEnv    :: s
-                                             , middlewares :: [Middleware]
-                                             , routes      :: [Route r w s]
-                                             }
+data CustomWebServer r w s
+  = CustomWebServer
+      { readerEnv   :: r
+      , writerEnv   :: w
+      , stateEnv    :: s
+      , middlewares :: [Middleware]
+      , routes      :: [Route r w s]
+      }
 
 -----------------------------------------------------------------------------------------------------
 -- DEFAULT TYPES --

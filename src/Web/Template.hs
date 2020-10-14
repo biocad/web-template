@@ -5,6 +5,6 @@ module Web.Template
   , module Web.Template.Types
   ) where
 
-import           Web.Template.Except
-import           Web.Template.Server
-import           Web.Template.Types
+import Web.Template.Except
+import Web.Template.Server
+import Web.Template.Types

@@ -1,5 +1,5 @@
 name:                web-template
-version:             0.1.2.3
+version:             0.1.3.0
 synopsis:            Web template
 description:
             Web template includes:
@@ -21,27 +21,57 @@ cabal-version:       >=1.10
 library
   hs-source-dirs:      src
   exposed-modules:     Web.Template
+                     , Web.Template.Wai
+
+                     , Web.Template.Servant
+                     , Web.Template.Servant.API
+                     , Web.Template.Servant.Aeson
+                     , Web.Template.Servant.Auth
+                     , Web.Template.Servant.Error
+                     , Web.Template.Servant.Error.Instance
   other-modules:       Web.Template.Except
                      , Web.Template.Server
                      , Web.Template.Types
                      , Web.Template.Log
+
   build-depends:       base >= 4.7 && < 5
                      , aeson
-                     , bytestring
+                     , aeson-casing
                      , bcd-log
+                     , bytestring
                      , cookie
                      , data-default
                      , fast-logger
                      , http-types
+                     , lens
                      , mtl
+                     , openapi3
+                     , resourcet
                      , scotty
+                     , servant >= 0.18
+                     , servant-openapi-ui >= 0.3.4
+                     , servant-openapi3
+                     , servant-server >= 0.18
                      , text
+                     , time
                      , wai
                      , wai-extra
                      , wai-logger
                      , warp
-                     , time
   default-language:    Haskell2010
+  default-extensions:  AllowAmbiguousTypes
+                     , DataKinds
+                     , DeriveGeneric
+                     , FlexibleContexts
+                     , FlexibleInstances
+                     , KindSignatures
+                     , MultiParamTypeClasses
+                     , OverloadedStrings
+                     , ScopedTypeVariables
+                     , TypeApplications
+                     , TypeFamilies
+                     , TypeOperators
+                     , UndecidableInstances
 
 executable web-template
   hs-source-dirs:      app
@@ -52,6 +82,22 @@ executable web-template
                      , text
                      , mtl
                      , scotty
+  default-language:    Haskell2010
+
+executable web-template-servant
+  hs-source-dirs:      app
+  main-is:             ServantApp.hs
+  ghc-options:         -threaded -rtsopts
+  build-depends:       base
+                     , aeson
+                     , openapi3
+                     , servant-openapi-ui
+                     , servant-openapi3
+                     , servant-server
+                     , text
+                     , wai
+                     , warp
+                     , web-template
   default-language:    Haskell2010
 
 source-repository head
