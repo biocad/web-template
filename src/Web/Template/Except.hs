@@ -13,14 +13,11 @@ module Web.Template.Except
   , MonadWebError(..)
   ) where
 
-import           Data.Aeson                (FromJSON (..), ToJSON (..),
-                                            defaultOptions, genericToEncoding)
-import           Data.String               (fromString)
-import           GHC.Generics              (Generic)
-import           Network.HTTP.Types.Status (Status, status403, status404,
-                                            status500)
-import           Web.Scotty.Trans          (ActionT, ScottyError (..), json,
-                                            raise, status)
+import Data.Aeson                (FromJSON (..), ToJSON (..), defaultOptions, genericToEncoding)
+import Data.String               (fromString)
+import GHC.Generics              (Generic)
+import Network.HTTP.Types.Status (Status, status403, status404, status500)
+import Web.Scotty.Trans          (ActionT, ScottyError (..), json, raise, status)
 
 
 instance ScottyError Except where
@@ -36,7 +33,8 @@ data Except
 
 deriving instance Show Except
 
-newtype JsonWebError = JsonWebError { error :: String }
+newtype JsonWebError
+  = JsonWebError { error :: String }
   deriving (Generic)
 
 instance ToJSON JsonWebError where

@@ -24,7 +24,8 @@ import Data.OpenApi.Internal.Schema
 -- >   deriving (ToJSON, FromJSON, ToSchema) via CamelCaseAeson Foo
 --
 -- Instances are made with 'aesonPrefix' 'camelCase' and 'omitNothingFields' set to @True@.
-newtype CamelCaseAeson a = CamelCaseAeson a
+newtype CamelCaseAeson a
+  = CamelCaseAeson a
 
 prefixOptions :: Options
 prefixOptions = (aesonPrefix camelCase) { omitNothingFields = True }
@@ -53,7 +54,8 @@ instance (Generic a, GToSchema (Rep a)) => ToSchema (CamelCaseAeson a) where
 --
 -- Last line reuses 'ToSchema' instances from 'CamelCaseAeson' to ensure that instances
 -- stay consistent.
-newtype SwaggerWithExample a = SwaggerWithExample a
+newtype SwaggerWithExample a
+  = SwaggerWithExample a
 
 -- | Provide an example for Swagger schema.
 --

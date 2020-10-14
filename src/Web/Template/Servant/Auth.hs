@@ -31,7 +31,8 @@ import Web.Cookie                (parseCookiesText)
 -- Handlers will get an 'UserId' argument.
 data CbdAuth
 
-newtype UserId = UserId { getUserId :: Text }
+newtype UserId
+  = UserId { getUserId :: Text }
   deriving (Eq, Show, Generic)
 
 instance HasServer api context => HasServer (CbdAuth :> api) context where
