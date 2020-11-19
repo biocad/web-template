@@ -6,6 +6,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.3.1] - 2020-11-19
+### Changed
+- Rewrite logging middleware: do not force reading the whole request before passing it to the
+  application.
+
 ## [0.1.3.0] - 2020-10-14
 ### Added
 - `servant` support.
