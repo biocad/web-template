@@ -19,7 +19,7 @@ import           Network.HTTP.Types.Status (Status (..))
 import           Network.Wai               (Middleware, rawPathInfo, requestMethod, responseStatus)
 import           Network.Wai.Internal      (Response (..))
 import           System.BCD.Log            (Level (..))
-import           System.IO                 (stdout)
+import           System.IO                 (hFlush, stdout)
 
 bcdlog :: Middleware
 bcdlog = logMiddleware False
@@ -64,6 +64,7 @@ logMiddleware log400 app request respond = do
         )
 
     hPutBuilder stdout (fromEncoding logLine <> "\n")
+    hFlush stdout
 
     return rcv
   where
