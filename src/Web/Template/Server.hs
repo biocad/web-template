@@ -15,22 +15,28 @@ module Web.Template.Server
     , toApplication
     ) where
 
-import Control.Concurrent        (threadDelay)
-import Control.Exception         (AsyncException (..), SomeException (..), catch, fromException)
-import Control.Monad             (unless)
-import Control.Monad.RWS         (RWST, evalRWST)
-import Data.String               (fromString)
-import Data.Text.Encoding        (encodeUtf8)
-import Data.Text.Lazy            as TL (Text, toStrict)
-import Network.HTTP.Types.Status (status401)
-import Network.Wai               (Application)
-import Network.Wai.Handler.Warp  (Settings)
-import Web.Cookie                (parseCookiesText)
-import Web.Scotty.Trans          (Options (..), ScottyT, defaultHandler, header, json, middleware,
-                                  next, param, scottyAppT, scottyOptsT, status)
-import Web.Template.Except       (Except, JsonWebError (..), handleEx)
-import Web.Template.Types
-import Web.Template.Wai
+import           Control.Concurrent        (threadDelay)
+import           Control.Exception         (AsyncException (..), SomeException (..), catch,
+                                            fromException)
+import           Control.Monad             (unless)
+import           Control.Monad.IO.Class    (liftIO)
+import           Control.Monad.RWS         (RWST, evalRWST)
+import           Data.IORef                (writeIORef)
+import           Data.String               (fromString)
+import           Data.Text.Encoding        (encodeUtf8)
+import           Data.Text.Lazy            as TL (Text, toStrict)
+import qualified Data.Vault.Lazy           as V
+import           Network.HTTP.Types.Status (status401)
+import           Network.Wai               (Application, vault)
+import           Network.Wai.Handler.Warp  (Settings)
+import           Web.Cookie                (parseCookiesText)
+import           Web.Scotty.Trans          (Options (..), ScottyT, defaultHandler, header, json,
+                                            middleware, next, param, request, scottyAppT,
+                                            scottyOptsT, status)
+import           Web.Template.Except       (Except, JsonWebError (..), handleEx)
+import           Web.Template.Log          (userIdVaultKey)
+import           Web.Template.Types
+import           Web.Template.Wai
 
 -- | Restart `f` on `error` after `1s`.
 restartOnError1 :: IO () -> IO ()
@@ -94,7 +100,13 @@ auth (AuthProcess p) = do
     cookiesM <- header "Cookie"
     let idMaybe = cookiesM >>= getIdFromCookies
     case idMaybe of
-        Just id' -> p id'
+        Just id' -> do
+            -- Try to store user id in the vault, to be used by logging middleware later.
+            mUserIdRef <- V.lookup userIdVaultKey . vault <$> request
+            case mUserIdRef of
+              Nothing  -> return ()
+              Just ref -> liftIO $ writeIORef ref $ Just id'
+            p id'
         Nothing -> do
             status status401
             json . JsonWebError $ "Authorization failed"
