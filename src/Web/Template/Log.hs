@@ -4,10 +4,13 @@
 module Web.Template.Log
   ( bcdlog
   , bcdlog400
+
+  , userIdVaultKey
   ) where
 
 import           Data.Aeson                (fromEncoding, pairs, (.=))
 import           Data.ByteString.Builder   (hPutBuilder, toLazyByteString)
+import           Data.IORef                (IORef, newIORef, readIORef)
 import           Data.Text                 as T (Text, pack, unwords)
 import           Data.Text.Encoding        (decodeUtf8)
 import qualified Data.Text.Encoding.Error  as TE
@@ -15,11 +18,18 @@ import qualified Data.Text.Lazy.Encoding   as TLE (decodeUtf8With)
 import           Data.Time                 (ZonedTime, defaultTimeLocale, formatTime,
                                             nominalDiffTimeToSeconds, utcToLocalZonedTime)
 import           Data.Time.Clock.POSIX     (POSIXTime, getPOSIXTime, posixSecondsToUTCTime)
+import           Data.Vault.Lazy           (Key, insert, newKey)
 import           Network.HTTP.Types.Status (Status (..))
-import           Network.Wai               (Middleware, rawPathInfo, requestMethod, responseStatus)
+import           Network.Wai               (Middleware, rawPathInfo, requestMethod, responseStatus,
+                                            vault)
 import           Network.Wai.Internal      (Response (..))
 import           System.BCD.Log            (Level (..))
 import           System.IO                 (hFlush, stdout)
+import           System.IO.Unsafe          (unsafePerformIO)
+
+userIdVaultKey :: Key (IORef (Maybe Text))
+userIdVaultKey = unsafePerformIO newKey
+{-# NOINLINE userIdVaultKey #-}
 
 bcdlog :: Middleware
 bcdlog = logMiddleware False
@@ -35,10 +45,19 @@ logMiddleware log400 app request respond = do
   start <- getPOSIXTime
   startZoned <- utcToLocalZonedTime $ posixSecondsToUTCTime start
 
-  app request $ \response -> do
+  -- Insert an empty IORef to the vault associated with request.
+  -- This IORef will later be filled by authorization handler in the application.
+  userIdRef <- newIORef Nothing
+  let vaultWithUserId = insert userIdVaultKey userIdRef $ vault request
+
+  app request { vault = vaultWithUserId } $ \response -> do
     finishApp <- getPOSIXTime
     !rcv <- respond response
     finishNetwork <- getPOSIXTime
+
+    -- Read userId written by the application.
+    userId <- readIORef userIdRef
+
     let
       statusC = statusCode $ responseStatus response
       msg'    = T.unwords [method, url, pack (show statusC)]
@@ -58,6 +77,7 @@ logMiddleware log400 app request respond = do
         <> "msg"           .= msg'
         <> "status"        .= statusC
         <> "url"           .= url
+        <> maybe mempty ("userId" .=) userId
         <> if log400 && statusC >= 400
               then maybe mempty (\b -> "response" .= TLE.decodeUtf8With TE.lenientDecode (toLazyByteString b)) responseBody
               else mempty

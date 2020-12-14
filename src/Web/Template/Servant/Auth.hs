@@ -3,19 +3,23 @@ module Web.Template.Servant.Auth
 
 -- after https://www.stackage.org/haddock/lts-15.15/servant-server-0.16.2/src/Servant.Server.Experimental.Auth.html
 
-import Control.Lens  (at, (.~), (?~))
-import Data.Function ((&))
-import Data.Functor  ((<&>))
-import Data.Proxy    (Proxy (..))
-import Data.Text     (Text)
-import GHC.Generics  (Generic)
+import           Control.Lens           (at, (.~), (?~))
+import           Control.Monad.IO.Class (liftIO)
+import           Data.Function          ((&))
+import           Data.Functor           ((<&>))
+import           Data.IORef             (writeIORef)
+import           Data.Proxy             (Proxy (..))
+import           Data.Text              (Text)
+import qualified Data.Vault.Lazy        as V
+import           GHC.Generics           (Generic)
+import           Web.Template.Log       (userIdVaultKey)
 
 import Data.OpenApi.Internal     (ApiKeyLocation (..), ApiKeyParams (..), SecurityRequirement (..),
                                   SecurityScheme (..), SecuritySchemeType (..))
 import Data.OpenApi.Lens         (components, description, security, securitySchemes)
 import Data.OpenApi.Operation    (allOperations, setResponse)
 import Network.HTTP.Types.Header (hContentType)
-import Network.Wai               (requestHeaders)
+import Network.Wai               (requestHeaders, vault)
 import Servant.API               ((:>))
 import Servant.OpenApi           (HasOpenApi (..))
 import Servant.Server            (HasServer (..), ServerError (..), err401)
@@ -43,12 +47,21 @@ instance HasServer api context => HasServer (CbdAuth :> api) context where
   route _ context sub =
     route @api Proxy context
       $ addAuthCheck sub
-      $ withRequest $ \req ->
-          maybe (delayedFailFatal err) return $
-            lookup "cookie" (requestHeaders req)
-              <&> parseCookiesText
-              >>= lookup "id"
-              <&> UserId
+      $ withRequest $ \req -> do
+          let
+            mUserId =
+              lookup "cookie" (requestHeaders req)
+                <&> parseCookiesText
+                >>= lookup "id"
+          case mUserId of
+            Nothing -> delayedFailFatal err
+            Just uid -> do
+                -- Try to store user id in the vault, to be used by logging middleware later.
+                let mUserIdRef = V.lookup userIdVaultKey $ vault req
+                case mUserIdRef of
+                  Nothing  -> return ()
+                  Just ref -> liftIO $ writeIORef ref $ Just uid
+                return $ UserId uid
     where
       err = err401
         { errBody = "{\"error\": \"Authorization failed\"}"

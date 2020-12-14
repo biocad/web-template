@@ -6,6 +6,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.3.3] - 2020-12-12
+### Changed
+- Log user id for requests where it's set.
+
 ## [0.1.3.2] - 2020-11-19
 ### Fixed
 - Flush `stdout` after writing logs.
