@@ -3,16 +3,16 @@
 {-# LANGUAGE TypeApplications  #-}
 {-# LANGUAGE TypeOperators     #-}
 
-import Data.Aeson         (encode)
-import Data.OpenApi       (OpenApi)
-import Data.Proxy         (Proxy (..))
-import Data.Text          (Text)
-import Servant            (Description, Get, Handler, JSON, PlainText, Post, ReqBody, Summary,
-                           (:<|>) (..), (:>))
-import Servant.OpenAPI.UI (OpenApiSchemaUI, openapiSchemaUIServer)
-import Servant.OpenApi    (toOpenApi)
+import Data.Aeson      (encode)
+import Data.OpenApi    (OpenApi)
+import Data.Proxy      (Proxy (..))
+import Data.Text       (Text)
+import Servant         (Description, Get, Handler, JSON, PlainText, Post, ReqBody, Summary,
+                        (:<|>) (..), (:>))
+import Servant.OpenApi (toOpenApi)
 
-import Web.Template.Servant (CbdAuth, UserId (..), Version, runServantServer)
+import Web.Template.Servant (CbdAuth, SwaggerSchemaUI, UserId (..), Version, runServantServer,
+                             swaggerSchemaUIServer)
 
 type API = Version "1" :>
   ( Summary "ping route" :> Description "Returns pong" :> "ping" :> Get '[PlainText] Text
@@ -38,5 +38,5 @@ main :: IO ()
 main = do
   print $ encode swagger
 
-  runServantServer @(OpenApiSchemaUI "swagger-ui" "swagger.json" :<|> API) 5000
-    $ openapiSchemaUIServer swagger :<|> (pingH :<|> (\userId -> helloH userId :<|> postH userId))
+  runServantServer @(SwaggerSchemaUI "swagger-ui" "swagger.json" :<|> API) 5000
+    $ swaggerSchemaUIServer swagger :<|> (pingH :<|> (\userId -> helloH userId :<|> postH userId))

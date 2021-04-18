@@ -3,8 +3,8 @@ module Web.Template.Servant
   , runServantServerWith
   , runServantServerWithContext
 
-  , OpenApiSchemaUI
-  , openapiSchemaUIServer
+  , SwaggerSchemaUI
+  , swaggerSchemaUIServer
 
   , module Web.Template.Servant.Aeson
   , module Web.Template.Servant.API
@@ -15,7 +15,7 @@ module Web.Template.Servant
 import Data.Proxy               (Proxy (..))
 import Network.Wai              (Application)
 import Network.Wai.Handler.Warp (Settings, runSettings)
-import Servant.OpenAPI.UI       (OpenApiSchemaUI, openapiSchemaUIServer)
+import Servant.Swagger.UI       (SwaggerSchemaUI, swaggerSchemaUIServer)
 import Servant.Server           (Context, DefaultErrorFormatters, ErrorFormatters, HasContextEntry,
                                  HasServer, Server, serveWithContext, type (.++), (.++))
 
