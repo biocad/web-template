@@ -2,23 +2,3 @@ packages: *.cabal
 
 package web-template
     ghc-options: -Wall
-
-source-repository-package
-    type: git
-    location: https://github.com/maksbotan/servant-swagger-ui
-    tag: 0e3a6c3dcc54e081ca499e0ed0a73b9a12b538a8
-    subdir: servant-swagger-ui-core
-
-source-repository-package
-    type: git
-    location: https://github.com/maksbotan/servant-swagger-ui
-    tag: 0e3a6c3dcc54e081ca499e0ed0a73b9a12b538a8
-    subdir: servant-swagger-ui
-
-source-repository-package
-    type: git
-    location: https://github.com/maksbotan/servant-swagger-ui
-    tag: 0e3a6c3dcc54e081ca499e0ed0a73b9a12b538a8
-    subdir: servant-openapi-ui
-
-allow-newer: servant-blaze:servant

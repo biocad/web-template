@@ -5,6 +5,7 @@ import Data.Aeson
 import Data.Aeson.Casing
 import Data.Functor      ((<&>))
 import Data.Proxy        (Proxy (..))
+import Data.Typeable     (Typeable)
 import GHC.Generics
 
 import Data.OpenApi
@@ -37,7 +38,7 @@ instance (Generic a, GToJSON Zero (Rep a), GToEncoding Zero (Rep a)) => ToJSON (
 instance (Generic a, GFromJSON Zero (Rep a)) => FromJSON (CamelCaseAeson a) where
   parseJSON = fmap CamelCaseAeson . genericParseJSON prefixOptions
 
-instance (Generic a, GToSchema (Rep a)) => ToSchema (CamelCaseAeson a) where
+instance (Generic a, GToSchema (Rep a), Typeable a) => ToSchema (CamelCaseAeson a) where
     declareNamedSchema _ =
       genericDeclareNamedSchema @a (fromAesonOptions prefixOptions) Proxy
 
