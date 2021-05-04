@@ -6,6 +6,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.3.5] - 2021-05-04
+### Added
+- Add a way to describe fields in Swagger schemas.
+
 ## [0.1.3.4] - 2021-04-18
 ### Changed
 - Move to `servant-swagger-ui-0.3.5.3.47.1`.

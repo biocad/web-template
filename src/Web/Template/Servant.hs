@@ -10,6 +10,7 @@ module Web.Template.Servant
   , module Web.Template.Servant.API
   , module Web.Template.Servant.Auth
   , module Web.Template.Servant.Error
+  , module Web.Template.Servant.Swagger
   ) where
 
 import Data.Proxy               (Proxy (..))
@@ -26,6 +27,7 @@ import Web.Template.Servant.API
 import Web.Template.Servant.Aeson
 import Web.Template.Servant.Auth
 import Web.Template.Servant.Error
+import Web.Template.Servant.Swagger
 
 runServantServer
   :: forall api
