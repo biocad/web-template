@@ -59,6 +59,8 @@ library
                      , wai-extra
                      , wai-logger
                      , warp
+                     , openid-connect == 0.1.0.0
+                     , jose == 0.8.4
   default-language:    Haskell2010
   default-extensions:  AllowAmbiguousTypes
                      , DataKinds
