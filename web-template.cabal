@@ -39,13 +39,20 @@ library
                      , aeson-casing
                      , bcd-log
                      , bytestring
+                     , cache
+                     , clock
                      , cookie
                      , data-default
                      , fast-logger
+                     , jose >= 0.8.4
+                     , http-client
+                     , http-client-tls
                      , http-types
                      , lens
                      , mtl
+                     , network-uri
                      , openapi3 >= 3.1.0
+                     , openid-connect >= 0.1.0.0
                      , resourcet
                      , scotty
                      , servant >= 0.18
@@ -53,6 +60,7 @@ library
                      , servant-server >= 0.18
                      , servant-swagger-ui >= 0.3.5
                      , text
+                     , time
                      , time
                      , vault
                      , wai
@@ -91,6 +99,7 @@ executable web-template-servant
   ghc-options:         -threaded -rtsopts
   build-depends:       base
                      , aeson
+                     , network-uri
                      , openapi3
                      , servant-openapi3
                      , servant-server

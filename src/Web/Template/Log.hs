@@ -6,8 +6,11 @@ module Web.Template.Log
   , bcdlog400
 
   , userIdVaultKey
+  , tokenVaultKey
+  , pTokenVaultKey
   ) where
 
+import           Crypto.JWT                (ClaimsSet)
 import           Data.Aeson                (fromEncoding, pairs, (.=))
 import           Data.ByteString.Builder   (hPutBuilder, toLazyByteString)
 import           Data.IORef                (IORef, newIORef, readIORef)
@@ -31,6 +34,14 @@ userIdVaultKey :: Key (IORef (Maybe Text))
 userIdVaultKey = unsafePerformIO newKey
 {-# NOINLINE userIdVaultKey #-}
 
+tokenVaultKey :: Key (IORef (Maybe Text))
+tokenVaultKey = unsafePerformIO newKey
+{-# NOINLINE tokenVaultKey #-}
+
+pTokenVaultKey :: Key (IORef (Maybe ClaimsSet))
+pTokenVaultKey = unsafePerformIO newKey
+{-# NOINLINE pTokenVaultKey #-}
+
 bcdlog :: Middleware
 bcdlog = logMiddleware False
 
@@ -48,9 +59,16 @@ logMiddleware log400 app request respond = do
   -- Insert an empty IORef to the vault associated with request.
   -- This IORef will later be filled by authorization handler in the application.
   userIdRef <- newIORef Nothing
-  let vaultWithUserId = insert userIdVaultKey userIdRef $ vault request
+  tokenRef  <- newIORef Nothing
+  ptokenRef <- newIORef Nothing
 
-  app request { vault = vaultWithUserId } $ \response -> do
+  let vaultWithEverything =
+        insert tokenVaultKey tokenRef $
+        insert pTokenVaultKey ptokenRef $
+        insert userIdVaultKey userIdRef $
+        vault request
+
+  app request { vault = vaultWithEverything } $ \response -> do
     finishApp <- getPOSIXTime
     !rcv <- respond response
     finishNetwork <- getPOSIXTime
