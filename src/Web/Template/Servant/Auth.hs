@@ -107,7 +107,7 @@ instance HasServer api context => HasServer (OIDCAuth :> api) context where
           case (getHeader req, getHeader req >>= getToken) of
             (Just token, Just jws) -> do
               mgr <- newTlsManager
-              let jwksURI = fromJust $ parseURI "https://keycloak.biocad.ru/auth/realms/MSAzure/protocol/openid-connect/certs"
+              let jwksURI = fromJust $ parseURI ""
               keysResp <- liftIO $
                 keysFromDiscovery (https mgr) $ Discovery {jwksUri = OIDC.URI jwksURI}
               case keysResp of
