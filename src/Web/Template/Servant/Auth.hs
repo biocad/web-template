@@ -20,14 +20,13 @@ import           Crypto.JWT                     (JWTError, decodeCompact,
 import           Data.Aeson                     (Value (..))
 import           Data.ByteString                (stripPrefix)
 import qualified Data.ByteString.Lazy           as LB
-import           Data.Maybe                     (fromJust)
+import           Data.Maybe                     (fromMaybe)
 import           Data.OpenApi.Internal          (ApiKeyLocation (..), ApiKeyParams (..),
                                                  SecurityRequirement (..), SecurityScheme (..),
-                                                 SecuritySchemeType (..))
+                                                 SecuritySchemeType (..), HttpSchemeType (..))
 import           Data.OpenApi.Lens              (components, description, security, securitySchemes)
 import           Data.OpenApi.Operation         (allOperations, setResponse)
 import           Network.HTTP.Client            (httpLbs)
-import           Network.HTTP.Client.TLS        (newTlsManager)
 import           Network.HTTP.Types.Header      (hContentType)
 import           Network.URI                    (parseURI)
 import           Network.Wai                    (requestHeaders, vault)
@@ -35,10 +34,11 @@ import           OpenID.Connect.Client.Provider (Discovery (Discovery, jwksUri),
 import qualified OpenID.Connect.Client.Provider as OIDC
 import           Servant.API                    ((:>))
 import           Servant.OpenApi                (HasOpenApi (..))
-import           Servant.Server                 (HasServer (..), ServerError (..), err401)
+import           Servant.Server                 (HasServer (..), ServerError (..), err401, HasContextEntry (getContextEntry))
 import           Servant.Server.Internal        (addAuthCheck, delayedFailFatal, withRequest)
 import           Web.Cookie                     (parseCookiesText)
 
+import Web.Template.Types (JWKSURI (..), TPAuthManager (..))
 
 -- | Add authenthication via @id@ Cookie.
 --
@@ -94,7 +94,10 @@ instance HasOpenApi api => HasOpenApi (CbdAuth :> api) where
 
 data OIDCAuth
 
-instance HasServer api context => HasServer (OIDCAuth :> api) context where
+instance ( HasServer api context
+         , HasContextEntry context TPAuthManager
+         , HasContextEntry context JWKSURI
+         ) => HasServer (OIDCAuth :> api) context where
   type ServerT (OIDCAuth :> api) m = UserId -> ServerT api m
 
   hoistServerWithContext _ pc nt s = hoistServerWithContext @api Proxy pc nt . s
@@ -106,10 +109,13 @@ instance HasServer api context => HasServer (OIDCAuth :> api) context where
 
           case (getHeader req, getHeader req >>= getToken) of
             (Just token, Just jws) -> do
-              mgr <- newTlsManager
-              let jwksURI = fromJust $ parseURI ""
+              let mgr = getManager $ getContextEntry @_ @TPAuthManager context
+              let jwksURI = fromMaybe (error "incorrect jwks uri") $
+                    parseURI $ getURI $
+                    getContextEntry @_ @JWKSURI context
               keysResp <- liftIO $
                 keysFromDiscovery (https mgr) $ Discovery {jwksUri = OIDC.URI jwksURI}
+
               case keysResp of
                 Left _error -> delayedFailFatal err
                 Right (jwkSet, mbKeysExp) -> do
@@ -120,7 +126,8 @@ instance HasServer api context => HasServer (OIDCAuth :> api) context where
                   case res of
                     Left _error -> delayedFailFatal err
                     Right claims -> do
-                      let String uid = claims ^?! unregisteredClaims
+                      let String uid = claims
+                            ^?! unregisteredClaims
                             .at "object_guid"
                             ._Just
                       let mUserIdRef = V.lookup userIdVaultKey $ vault req
@@ -137,7 +144,7 @@ instance HasServer api context => HasServer (OIDCAuth :> api) context where
 
                       case mPTokenRef of
                         Nothing  -> return ()
-                        Just ref -> liftIO $ writeIORef ref $ Just jws
+                        Just ref -> liftIO $ writeIORef ref $ Just claims
 
                       return $ UserId uid
             _ -> delayedFailFatal err
@@ -155,10 +162,10 @@ instance HasServer api context => HasServer (OIDCAuth :> api) context where
 
 instance HasOpenApi api => HasOpenApi (OIDCAuth :> api) where
   toOpenApi _ = toOpenApi @api Proxy
-    & components . securitySchemes . at "cbdCookie" ?~ idCookie
-    & allOperations . security .~ [SecurityRequirement $ mempty & at "cbdCookie" ?~ []]
+    & components . securitySchemes . at "cbdJwt" ?~ idJWT
+    & allOperations . security .~ [SecurityRequirement $ mempty & at "cbdJWT" ?~ []]
     & setResponse 401 (return $ mempty & description .~ "Authorization failed")
     where
-      idCookie = SecurityScheme
-        (SecuritySchemeApiKey (ApiKeyParams "id" ApiKeyCookie))
-        (Just "`id` cookie")
+      idJWT = SecurityScheme
+        (SecuritySchemeHttp $ HttpSchemeBearer $ Just "jwt")
+        (Just "jwt token")

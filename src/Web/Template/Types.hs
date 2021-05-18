@@ -15,10 +15,12 @@ module Web.Template.Types
   , RouteP, RouteR, RouteW, RouteS, RouteRW, RouteRS, RouteWS
   , CustomWebServerP, CustomWebServerR, CustomWebServerW, CustomWebServerS
   , CustomWebServerRW, CustomWebServerRS, CustomWebServerWS
+  , JWKSURI (..), TPAuthManager (..)
   ) where
 
 import Control.Monad.RWS   (RWST (..))
 import Data.Text           as T (Text)
+import Network.HTTP.Client (Manager)
 import Network.Wai         (Middleware)
 import Web.Scotty.Trans    (ActionT, RoutePattern, ScottyT)
 import Web.Template.Except (Except)
@@ -167,5 +169,11 @@ type CustomWebServerRW r w = CustomWebServer r w ()
 type CustomWebServerRS r s = CustomWebServer r () s
 
 type CustomWebServerWS w s = CustomWebServer () w s
+
+---------------------------------------------------
+
+newtype JWKSURI = JWKSURI {getURI :: String}
+
+newtype TPAuthManager = TPAuthManager {getManager :: Manager}
 
 ---------------------------------------------------

@@ -10,10 +10,9 @@ module Web.Template.Log
   , pTokenVaultKey
   ) where
 
-import           Crypto.JOSE               (JWS, JWSHeader)
+import           Crypto.JWT                (ClaimsSet)
 import           Data.Aeson                (fromEncoding, pairs, (.=))
 import           Data.ByteString.Builder   (hPutBuilder, toLazyByteString)
-import           Data.Functor.Identity     (Identity)
 import           Data.IORef                (IORef, newIORef, readIORef)
 import           Data.Text                 as T (Text, pack, unwords)
 import           Data.Text.Encoding        (decodeUtf8)
@@ -39,7 +38,7 @@ tokenVaultKey :: Key (IORef (Maybe Text))
 tokenVaultKey = unsafePerformIO newKey
 {-# NOINLINE tokenVaultKey #-}
 
-pTokenVaultKey :: Key (IORef (Maybe (JWS Identity () JWSHeader)))
+pTokenVaultKey :: Key (IORef (Maybe ClaimsSet))
 pTokenVaultKey = unsafePerformIO newKey
 {-# NOINLINE pTokenVaultKey #-}
 

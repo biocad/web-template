@@ -5,7 +5,10 @@ packages:
 - '.'
 
 # necessary extra-deps that are not included in the BCD-LTS
-extra-deps: []
+extra-deps:
+  - openid-connect-0.1.0.0
+
+allow-newer: true
 
 flags: {}
 
