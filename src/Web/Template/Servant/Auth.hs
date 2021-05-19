@@ -146,9 +146,9 @@ instance ( HasServer api context
         claims <- liftIO
           ( runExceptT $
             verifyClaims @_ @_ @JWTError
-            (defaultJWTValidationSettings audCheck)
-            jwkSet
-            jws
+              (defaultJWTValidationSettings audCheck)
+              jwkSet
+              jws
           ) >>= \case
             Left _error  -> delayedFailFatal err
             Right claims -> return claims
@@ -158,14 +158,10 @@ instance ( HasServer api context
               .at "object_guid"
               ._Just
 
-        let mUserIdRef = V.lookup userIdVaultKey $ vault req
-        let mTokenRef = V.lookup tokenVaultKey $ vault req
-        let mPTokenRef = V.lookup pTokenVaultKey $ vault req
-
         sequence_ $ liftIO <$> catMaybes
-          [ mUserIdRef <&> flip writeIORef (Just uid)
-          , mTokenRef  <&> flip writeIORef (Just $ decodeUtf8 token)
-          , mPTokenRef <&> flip writeIORef (Just claims)
+          [ userIdVaultKey <?> req <&> flip writeIORef (Just uid)
+          , tokenVaultKey  <?> req <&> flip writeIORef (Just $ decodeUtf8 token)
+          , pTokenVaultKey <?> req <&> flip writeIORef (Just claims)
           ]
 
         return $ UserId uid
@@ -183,6 +179,8 @@ instance ( HasServer api context
         in max 0 $ diff - tTreshold
 
       audCheck = const True
+
+      what <?> wher = V.lookup what $ vault wher
 
       err = err401
         { errBody = "{\"error\": \"Authorization failed\"}"
