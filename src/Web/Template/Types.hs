@@ -15,12 +15,15 @@ module Web.Template.Types
   , RouteP, RouteR, RouteW, RouteS, RouteRW, RouteRS, RouteWS
   , CustomWebServerP, CustomWebServerR, CustomWebServerW, CustomWebServerS
   , CustomWebServerRW, CustomWebServerRS, CustomWebServerWS
-  , JWKSURI (..), TPAuthManager (..)
+  , OIDCNeeded (..)
   ) where
 
 import Control.Monad.RWS   (RWST (..))
 import Data.Text           as T (Text)
+import Data.Cache          (Cache)
+import Crypto.JOSE.JWK     (JWKSet)
 import Network.HTTP.Client (Manager)
+import Network.URI         (URI)
 import Network.Wai         (Middleware)
 import Web.Scotty.Trans    (ActionT, RoutePattern, ScottyT)
 import Web.Template.Except (Except)
@@ -172,8 +175,11 @@ type CustomWebServerWS w s = CustomWebServer () w s
 
 ---------------------------------------------------
 
-newtype JWKSURI = JWKSURI {getURI :: String}
-
-newtype TPAuthManager = TPAuthManager {getManager :: Manager}
+data OIDCNeeded = OIDCNeeded
+  { oidcManager      :: Manager
+  , oidcClientId     :: Text
+  , oidcDiscoveryUri :: URI
+  , oidcKeyCache     :: Cache Text JWKSet
+  }
 
 ---------------------------------------------------

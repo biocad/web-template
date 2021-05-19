@@ -1,18 +1,25 @@
+{-# LANGUAGE LambdaCase      #-}
+{-# LANGUAGE RecordWildCards #-}
+
 module Web.Template.Servant.Auth
-  where
+  ( CbdAuth
+  , OIDCAuth
+  , UserId (..)
+  ) where
 
 -- after https://www.stackage.org/haddock/lts-15.15/servant-server-0.16.2/src/Servant.Server.Experimental.Auth.html
 
+import           Control.Applicative    ((<|>))
 import           Control.Lens           (At (at), _Just, (&), (.~), (<&>), (?~), (^?!))
 import           Control.Monad.Except   (runExceptT)
 import           Control.Monad.IO.Class (liftIO)
 import           Data.IORef             (writeIORef)
+import           Data.Maybe             (catMaybes)
 import           Data.Proxy             (Proxy (..))
 import           Data.Text              (Text)
 import           Data.Text.Encoding     (decodeUtf8)
 import qualified Data.Vault.Lazy        as V
 import           GHC.Generics           (Generic)
-import           Web.Template.Log       (pTokenVaultKey, tokenVaultKey, userIdVaultKey)
 
 import           Crypto.JWT                     (JWTError, decodeCompact,
                                                  defaultJWTValidationSettings, unregisteredClaims,
@@ -20,25 +27,29 @@ import           Crypto.JWT                     (JWTError, decodeCompact,
 import           Data.Aeson                     (Value (..))
 import           Data.ByteString                (stripPrefix)
 import qualified Data.ByteString.Lazy           as LB
-import           Data.Maybe                     (fromMaybe)
+import qualified Data.Cache                     as Cache
 import           Data.OpenApi.Internal          (ApiKeyLocation (..), ApiKeyParams (..),
-                                                 SecurityRequirement (..), SecurityScheme (..),
-                                                 SecuritySchemeType (..), HttpSchemeType (..))
+                                                 HttpSchemeType (..), SecurityRequirement (..),
+                                                 SecurityScheme (..), SecuritySchemeType (..))
 import           Data.OpenApi.Lens              (components, description, security, securitySchemes)
 import           Data.OpenApi.Operation         (allOperations, setResponse)
+import           Data.Time.Clock                (diffUTCTime, getCurrentTime,
+                                                 nominalDiffTimeToSeconds)
 import           Network.HTTP.Client            (httpLbs)
 import           Network.HTTP.Types.Header      (hContentType)
-import           Network.URI                    (parseURI)
 import           Network.Wai                    (requestHeaders, vault)
 import           OpenID.Connect.Client.Provider (Discovery (Discovery, jwksUri), keysFromDiscovery)
 import qualified OpenID.Connect.Client.Provider as OIDC
 import           Servant.API                    ((:>))
 import           Servant.OpenApi                (HasOpenApi (..))
-import           Servant.Server                 (HasServer (..), ServerError (..), err401, HasContextEntry (getContextEntry))
+import           Servant.Server                 (HasContextEntry (getContextEntry), HasServer (..),
+                                                 ServerError (..), err401)
 import           Servant.Server.Internal        (addAuthCheck, delayedFailFatal, withRequest)
+import           System.Clock                   (TimeSpec (sec))
 import           Web.Cookie                     (parseCookiesText)
 
-import Web.Template.Types (JWKSURI (..), TPAuthManager (..))
+import Web.Template.Log   (pTokenVaultKey, tokenVaultKey, userIdVaultKey)
+import Web.Template.Types (OIDCNeeded (..))
 
 -- | Add authenthication via @id@ Cookie.
 --
@@ -95,8 +106,7 @@ instance HasOpenApi api => HasOpenApi (CbdAuth :> api) where
 data OIDCAuth
 
 instance ( HasServer api context
-         , HasContextEntry context TPAuthManager
-         , HasContextEntry context JWKSURI
+         , HasContextEntry context OIDCNeeded
          ) => HasServer (OIDCAuth :> api) context where
   type ServerT (OIDCAuth :> api) m = UserId -> ServerT api m
 
@@ -107,53 +117,72 @@ instance ( HasServer api context
       $ addAuthCheck sub
       $ withRequest $ \req -> do
 
-          case (getHeader req, getHeader req >>= getToken) of
-            (Just token, Just jws) -> do
-              let mgr = getManager $ getContextEntry @_ @TPAuthManager context
-              let jwksURI = fromMaybe (error "incorrect jwks uri") $
-                    parseURI $ getURI $
-                    getContextEntry @_ @JWKSURI context
-              keysResp <- liftIO $
-                keysFromDiscovery (https mgr) $ Discovery {jwksUri = OIDC.URI jwksURI}
+        token <- case getHeader req of
+          Just token -> return token
+          Nothing    -> delayedFailFatal err
 
-              case keysResp of
-                Left _error -> delayedFailFatal err
-                Right (jwkSet, mbKeysExp) -> do
-                  let audCheck = const True
-                  res <- liftIO $
-                    runExceptT $
-                      verifyClaims @_ @_ @JWTError (defaultJWTValidationSettings audCheck) jwkSet jws
-                  case res of
-                    Left _error -> delayedFailFatal err
-                    Right claims -> do
-                      let String uid = claims
-                            ^?! unregisteredClaims
-                            .at "object_guid"
-                            ._Just
-                      let mUserIdRef = V.lookup userIdVaultKey $ vault req
-                      let mTokenRef = V.lookup tokenVaultKey $ vault req
-                      let mPTokenRef = V.lookup pTokenVaultKey $ vault req
+        jws <- case getHeader req >>= getToken of
+          Just jws -> return jws
+          Nothing  -> delayedFailFatal err
 
-                      case mUserIdRef of
-                        Nothing  -> return ()
-                        Just ref -> liftIO $ writeIORef ref $ Just uid
+        let OIDCNeeded {..} = getContextEntry @_ @OIDCNeeded context
 
-                      case mTokenRef of
-                        Nothing  -> return ()
-                        Just ref -> liftIO $ writeIORef ref $ Just $ decodeUtf8 token
+        jwkSet <- liftIO (Cache.lookup oidcKeyCache "jwkSet") >>= \case
+          Just jwkSet -> return jwkSet
+          Nothing     -> liftIO
+              ( keysFromDiscovery
+                (https oidcManager)
+                (Discovery {jwksUri = OIDC.URI $ oidcDiscoveryUri})
+              ) >>= \case
+                Left _ -> delayedFailFatal err
+                Right (jwkSet, mbKeysExp) -> liftIO $ do
+                  now <- getCurrentTime
+                  Cache.insert' oidcKeyCache
+                    (diffTime <$> (mbKeysExp <|> pure now) <*> pure now)
+                    "jwkSet"
+                    jwkSet
+                  return jwkSet
 
-                      case mPTokenRef of
-                        Nothing  -> return ()
-                        Just ref -> liftIO $ writeIORef ref $ Just claims
+        claims <- liftIO
+          ( runExceptT $
+            verifyClaims @_ @_ @JWTError
+            (defaultJWTValidationSettings audCheck)
+            jwkSet
+            jws
+          ) >>= \case
+            Left _error  -> delayedFailFatal err
+            Right claims -> return claims
 
-                      return $ UserId uid
-            _ -> delayedFailFatal err
+        let String uid = claims
+              ^?! unregisteredClaims
+              .at "object_guid"
+              ._Just
+
+        let mUserIdRef = V.lookup userIdVaultKey $ vault req
+        let mTokenRef = V.lookup tokenVaultKey $ vault req
+        let mPTokenRef = V.lookup pTokenVaultKey $ vault req
+
+        sequence_ $ liftIO <$> catMaybes
+          [ mUserIdRef <&> flip writeIORef (Just uid)
+          , mTokenRef  <&> flip writeIORef (Just $ decodeUtf8 token)
+          , mPTokenRef <&> flip writeIORef (Just claims)
+          ]
+
+        return $ UserId uid
     where
       https mgr = (`httpLbs` mgr)
 
       getHeader r = lookup "Authorization" (requestHeaders r) >>= stripPrefix "Bearer "
 
       getToken = either (const Nothing) Just . decodeCompact @_ @JWTError . LB.fromStrict
+
+      tTreshold = 0 {sec = 30}
+
+      diffTime from to = let
+          diff = 0 {sec = floor $ nominalDiffTimeToSeconds $ diffUTCTime from to}
+        in max 0 $ diff - tTreshold
+
+      audCheck = const True
 
       err = err401
         { errBody = "{\"error\": \"Authorization failed\"}"
@@ -162,7 +191,7 @@ instance ( HasServer api context
 
 instance HasOpenApi api => HasOpenApi (OIDCAuth :> api) where
   toOpenApi _ = toOpenApi @api Proxy
-    & components . securitySchemes . at "cbdJwt" ?~ idJWT
+    & components . securitySchemes . at "cbdJWT" ?~ idJWT
     & allOperations . security .~ [SecurityRequirement $ mempty & at "cbdJWT" ?~ []]
     & setResponse 401 (return $ mempty & description .~ "Authorization failed")
     where
