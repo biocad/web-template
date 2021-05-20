@@ -39,7 +39,7 @@ import           Data.OpenApi.Internal          (ApiKeyLocation (..), ApiKeyPara
 import           Data.OpenApi.Lens              (components, description, security, securitySchemes)
 import           Data.OpenApi.Operation         (allOperations, setResponse)
 import           Data.Time.Clock                (diffUTCTime, getCurrentTime,
-                                                 nominalDiffTimeToSeconds)
+                                                 nominalDiffTimeToSeconds, UTCTime)
 import           Network.HTTP.Client            (Manager, httpLbs)
 import           Network.HTTP.Client.TLS        (newTlsManager)
 import           Network.HTTP.Types.Header      (hContentType)
@@ -52,7 +52,7 @@ import           Servant.OpenApi                (HasOpenApi (..))
 import           Servant.Server                 (HasContextEntry (getContextEntry), HasServer (..),
                                                  ServerError (..), err401)
 import           Servant.Server.Internal        (addAuthCheck, delayedFailFatal, withRequest)
-import           System.Clock                   (TimeSpec (sec))
+import           System.Clock                   (TimeSpec (..))
 import           Web.Cookie                     (parseCookiesText)
 
 import System.BCD.Log   (Level (..), log')
@@ -136,9 +136,9 @@ defaultOIDCCfg = do
   return $ OIDCConfig
     { oidcManager = mgr
     , oidcKeyCache = cache
-    , oidcWorkaroundUri = undefined
-    , oidcIssuer = undefined
-    , oidcClientId = undefined
+    , oidcWorkaroundUri = error "workaround uri not set"
+    , oidcIssuer = error "discovery uri not set"
+    , oidcClientId = error "client id not set"
     }
 
 instance ( HasServer api context
@@ -213,11 +213,14 @@ instance ( HasServer api context
 
       logWarn = liftIO . log' WARNING ("web-template" :: Text)
 
+      diffTime :: UTCTime -> UTCTime -> TimeSpec
       diffTime from to = let
-          tTreshold = 60
-          diff = diffUTCTime from to
-          mkTS x = 0 {sec = x}
-        in max 0 $ mkTS $ floor $ nominalDiffTimeToSeconds $ diff - tTreshold
+          diff = diffUTCTime from to - tTreshold
+        in max
+            TimeSpec {sec = 0, nsec = 0}
+            TimeSpec {sec = floor $ nominalDiffTimeToSeconds diff, nsec = 0}
+        where
+          tTreshold = 60 -- consider token expired 'tTreshold' seconds earlier
 
       audCheck = const True
 
