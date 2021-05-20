@@ -3,20 +3,24 @@
 {-# LANGUAGE TypeApplications  #-}
 {-# LANGUAGE TypeOperators     #-}
 
-import Data.Aeson      (encode)
-import Data.OpenApi    (OpenApi)
-import Data.Proxy      (Proxy (..))
-import Data.Text       (Text)
-import Servant         (Description, Get, Handler, JSON, PlainText, Post, ReqBody, Summary,
-                        (:<|>) (..), (:>))
-import Servant.OpenApi (toOpenApi)
+import Data.Aeson                      (encode)
+import Data.Maybe                      (fromJust)
+import Data.OpenApi                    (OpenApi)
+import Data.Proxy                      (Proxy (..))
+import Data.Text                       (Text)
+import Network.URI                     (parseURI)
+import Servant                         (Description, Get, Handler, JSON, PlainText, Post, ReqBody,
+                                        Summary, (:<|>) (..), (:>))
+import Servant.OpenApi                 (toOpenApi)
+import Servant.Server.Internal.Context (Context (..))
 
-import Web.Template.Servant (CbdAuth, SwaggerSchemaUI, UserId (..), Version, runServantServer,
-                             swaggerSchemaUIServer)
+import Web.Template.Servant (OIDCAuth, OIDCConfig (..), SwaggerSchemaUI, UserId (..), Version,
+                             defaultOIDCCfg, runServantServerWithContext, swaggerSchemaUIServer)
+import Web.Template.Wai     (defaultHandleLog, defaultHeaderCORS)
 
 type API = Version "1" :>
   ( Summary "ping route" :> Description "Returns pong" :> "ping" :> Get '[PlainText] Text
-  :<|> CbdAuth :>
+  :<|> OIDCAuth :>
     ( Summary "hello route" :> Description "Returns hello + user id" :> "hello" :> Get '[PlainText] Text
     :<|> "post" :> ReqBody '[JSON] Int :> Post '[JSON] Text
     )
@@ -36,7 +40,13 @@ swagger = toOpenApi @API Proxy
 
 main :: IO ()
 main = do
-  print $ encode swagger
-
-  runServantServer @(SwaggerSchemaUI "swagger-ui" "swagger.json" :<|> API) 5000
-    $ swaggerSchemaUIServer swagger :<|> (pingH :<|> (\userId -> helloH userId :<|> postH userId))
+    print $ encode swagger
+    cfg <- defaultOIDCCfg
+    runServantServerWithContext @(SwaggerSchemaUI "swagger-ui" "swagger.json" :<|> API)
+        id
+        (defaultHeaderCORS . defaultHandleLog)
+        5000
+        (cfg {oidcWorkaroundUri = uri} :. EmptyContext )
+        $ swaggerSchemaUIServer swagger :<|> (pingH :<|> (\userId -> helloH userId :<|> postH userId))
+  where
+    uri = fromJust $ parseURI "https://          .   "
