@@ -99,6 +99,7 @@ executable web-template-servant
   ghc-options:         -threaded -rtsopts
   build-depends:       base
                      , aeson
+                     , network-uri
                      , openapi3
                      , servant-openapi3
                      , servant-server

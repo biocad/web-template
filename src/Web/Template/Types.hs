@@ -15,7 +15,6 @@ module Web.Template.Types
   , RouteP, RouteR, RouteW, RouteS, RouteRW, RouteRS, RouteWS
   , CustomWebServerP, CustomWebServerR, CustomWebServerW, CustomWebServerS
   , CustomWebServerRW, CustomWebServerRS, CustomWebServerWS
-  , OIDCNeeded (..)
   ) where
 
 import Control.Monad.RWS   (RWST (..))
@@ -172,14 +171,5 @@ type CustomWebServerRW r w = CustomWebServer r w ()
 type CustomWebServerRS r s = CustomWebServer r () s
 
 type CustomWebServerWS w s = CustomWebServer () w s
-
----------------------------------------------------
-
-data OIDCNeeded = OIDCNeeded
-  { oidcManager      :: Manager
-  , oidcClientId     :: Text
-  , oidcDiscoveryUri :: URI
-  , oidcKeyCache     :: Cache Text JWKSet
-  }
 
 ---------------------------------------------------
