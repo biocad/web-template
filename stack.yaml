@@ -5,12 +5,7 @@ packages:
 - '.'
 
 # necessary extra-deps that are not included in the BCD-LTS
-extra-deps:
-  - git: https://github.com/maksbotan/generic-override.git
-    commit: 9cf9b3c3a233769590440e71fcc51de4b7dc37a3
-    subdirs:
-      - .
-      - aeson
+extra-deps: []
 
 flags: {}
 
