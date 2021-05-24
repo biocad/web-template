@@ -1,4 +1,5 @@
 {-# LANGUAGE LambdaCase          #-}
+{-# LANGUAGE OverloadedStrings   #-}
 {-# LANGUAGE RecordWildCards     #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
@@ -20,7 +21,7 @@ import           Control.Monad.IO.Class (liftIO)
 import           Data.IORef             (writeIORef, readIORef)
 import           Data.Maybe             (catMaybes)
 import           Data.Proxy             (Proxy (..))
-import           Data.Text              (Text, pack)
+import           Data.Text              (Text, pack, intercalate)
 import           Data.Text.Encoding     (decodeUtf8)
 import qualified Data.Vault.Lazy        as V
 import           GHC.Generics           (Generic)
@@ -53,7 +54,7 @@ import qualified OpenID.Connect.Client.Provider as OIDC
 import           Servant.API                    ((:>))
 import           Servant.OpenApi                (HasOpenApi (..))
 import           Servant.Server                 (HasContextEntry (getContextEntry), HasServer (..),
-                                                 ServerError (..), err401)
+                                                 ServerError (..), err401, err403)
 import           Servant.Server.Internal        (DelayedIO, addAuthCheck, delayedFailFatal,
                                                  withRequest)
 import           System.Clock                   (TimeSpec (..))
@@ -90,7 +91,7 @@ instance HasServer api context => HasServer (CbdAuth :> api) context where
                 <&> parseCookiesText
                 >>= lookup "id"
           case mUserId of
-            Nothing -> unauth
+            Nothing -> unauth401
             Just uid -> do
                 -- Try to store user id in the vault, to be used by logging middleware later.
                 let mUserIdRef = V.lookup userIdVaultKey $ vault req
@@ -114,7 +115,7 @@ instance HasOpenApi api => HasOpenApi (CbdAuth :> api) where
 -- Usage:
 --
 -- > type API = OIDCAuth :> (....)
--- Tooks token from 'Authorization' header
+-- Takes token from 'Authorization' header
 -- Handlers will get an 'UserId' argument
 -- Stores token and claims in vault
 data OIDCAuth
@@ -152,12 +153,12 @@ instance ( HasServer api context
       $ addAuthCheck sub
       $ withRequest $ \req -> do
 
-        token <- maybe unauth return (getToken req)
+        token <- maybe unauth401 return (getToken req)
 
         jws <- case decodeToken token of
           Left jwtErr -> do
             logWarn $ show jwtErr
-            unauth
+            unauth401
           Right jws -> return jws
 
         let OIDCConfig {..} = getContextEntry context
@@ -170,7 +171,7 @@ instance ( HasServer api context
               ) >>= \case
                 Left jwtErr -> do
                   logWarn $ show jwtErr
-                  unauth
+                  unauth401
                 Right (jwkSet, mbKeysExp) -> liftIO $ do
                   now <- getCurrentTime
                   Cache.insert' oidcKeyCache
@@ -189,12 +190,12 @@ instance ( HasServer api context
           ) >>= \case
             Left jwtErr  -> do
               logWarn $ show jwtErr
-              unauth
+              unauth401
             Right claims -> return claims
 
         let uid = claims
               ^?! unregisteredClaims
-              .ix "object_guid" ._String
+              . ix "object_guid" . _String
 
         liftIO $ sequence_ $ catMaybes
           [ userIdVaultKey <?> req <&> flip writeIORef (Just uid)
@@ -242,17 +243,7 @@ instance HasOpenApi api => HasOpenApi (OIDCAuth :> api) where
 --
 -- > type API = Permit '["User", "Owner"] :> (....)
 -- route access permitted if user has at least 1 role from specified list
--- Tooks user roles from vault (originated from jwt token)
-data Permit (rs :: [Symbol])
-
-class KnownSymbols (rs :: [Symbol]) where
-  symbolsVal :: p rs ->  [Text]
-
-instance KnownSymbols '[] where
-  symbolsVal _ = []
-
-instance (KnownSymbol h, KnownSymbols t) => KnownSymbols (h ': t) where
-  symbolsVal _ = pack (symbolVal (Proxy :: Proxy h)) : symbolsVal (Proxy :: Proxy t)
+-- Takes user roles from vault (originated from jwt token)
 
 instance ( HasServer api context
          , KnownSymbols roles
@@ -266,23 +257,23 @@ instance ( HasServer api context
     route @api Proxy context
       $ addAuthCheck (const <$> sub)
       $ withRequest $ \req -> do
-        pTokenRef <- maybe unauth return $ pTokenVaultKey <?> req
+        pTokenRef <- maybe unauth401 return $ pTokenVaultKey <?> req
 
-        claims <- liftIO (readIORef pTokenRef) >>= maybe unauth return
+        claims <- liftIO (readIORef pTokenRef) >>= maybe unauth401 return
 
         let azp = claims
               ^?! unregisteredClaims
-              .ix "azp" ._String
+              . ix "azp" . _String
 
         let haveRoles = claims
               ^.. unregisteredClaims
-              .ix "resource_access"
-              .key azp
-              .key "roles"
-              .values ._String
+              . ix "resource_access"
+              . key azp
+              . key "roles"
+              . values . _String
 
         unless (any (`elem` rolesNeeded) haveRoles)
-          unauth
+          unauth403
     where
       rolesNeeded = symbolsVal (Proxy @roles)
 
@@ -292,17 +283,37 @@ instance ( HasOpenApi api
   toOpenApi _ = toOpenApi @api Proxy
     & components . securitySchemes . at "cbdRole" ?~ idRole
     & allOperations . security .~ [SecurityRequirement $ mempty & at "cbdRole" ?~ []]
-    & setResponse 401 (return $ mempty & description .~ "Authorization failed")
+    & setResponse 403 (return $ mempty & description .~ descr)
     where
       idRole = SecurityScheme
         (SecuritySchemeHttp (HttpSchemeCustom "role"))
         (Just "role auth")
 
+      descr = "Action not permitted. Allowed for: "
+        <> intercalate "," (symbolsVal (Proxy :: Proxy roles))
+
+data Permit (rs :: [Symbol])
+
+class KnownSymbols (rs :: [Symbol]) where
+  symbolsVal :: p rs ->  [Text]
+
+instance KnownSymbols '[] where
+  symbolsVal _ = []
+
+instance (KnownSymbol h, KnownSymbols t) => KnownSymbols (h ': t) where
+  symbolsVal _ = pack (symbolVal (Proxy :: Proxy h)) : symbolsVal (Proxy :: Proxy t)
+
 (<?>) :: V.Key a -> Request -> Maybe a
 what <?> req = V.lookup what $ vault req
 
-unauth :: DelayedIO a
-unauth = delayedFailFatal $ err401
+unauth401 :: DelayedIO a
+unauth401 = delayedFailFatal $ err401
   { errBody = "{\"error\": \"Authorization failed\"}"
+  , errHeaders = [(hContentType, "application/json")]
+  }
+
+unauth403 :: DelayedIO a
+unauth403 = delayedFailFatal $ err403
+  { errBody = "{\"error\": \"Action not permitted\"}"
   , errHeaders = [(hContentType, "application/json")]
   }
