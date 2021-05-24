@@ -193,9 +193,11 @@ instance ( HasServer api context
               unauth401
             Right claims -> return claims
 
-        let uid = claims
-              ^?! unregisteredClaims
-              . ix "object_guid" . _String
+        uid <- case claims ^? unregisteredClaims . ix "object_guid" . _String of
+          Nothing -> do
+            logErr ("No object_guid found" :: Text)
+            unauth401
+          Just uid -> return uid
 
         liftIO $ sequence_ $ catMaybes
           [ userIdVaultKey <?> req <&> flip writeIORef (Just uid)
@@ -212,6 +214,8 @@ instance ( HasServer api context
       decodeToken = decodeCompact @_ @JWTError . LB.fromStrict
 
       logWarn = liftIO . log' WARNING ("web-template" :: Text)
+
+      logErr = liftIO . log' ERROR ("web-template" :: Text)
 
       diffTime :: UTCTime -> UTCTime -> TimeSpec
       diffTime from to = let
@@ -281,16 +285,10 @@ instance ( HasOpenApi api
          , KnownSymbols roles
          ) => HasOpenApi (Permit roles :> api) where
   toOpenApi _ = toOpenApi @api Proxy
-    & components . securitySchemes . at "cbdRole" ?~ idRole
-    & allOperations . security .~ [SecurityRequirement $ mempty & at "cbdRole" ?~ []]
     & setResponse 403 (return $ mempty & description .~ descr)
     where
-      idRole = SecurityScheme
-        (SecuritySchemeHttp (HttpSchemeCustom "role"))
-        (Just "role auth")
-
       descr = "Action not permitted. Allowed for: "
-        <> intercalate "," (symbolsVal (Proxy :: Proxy roles))
+        <> intercalate ", " (symbolsVal (Proxy :: Proxy roles))
 
 data Permit (rs :: [Symbol])
 
