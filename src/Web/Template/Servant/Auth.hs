@@ -238,8 +238,8 @@ instance HasOpenApi api => HasOpenApi (OIDCAuth :> api) where
 
 data Permit  (rs :: [Symbol])
 
-class KnownSymbols (ss :: [Symbol]) where
-  symbolsVal  :: p ss ->  [Text]
+class KnownSymbols (rs :: [Symbol]) where
+  symbolsVal  :: p rs ->  [Text]
 
 instance KnownSymbols '[] where
   symbolsVal  _ = []
@@ -278,6 +278,18 @@ instance ( HasServer api context
           unauth
     where
       rolesNeeded = symbolsVal (Proxy @roles)
+
+instance ( HasOpenApi api
+         , KnownSymbols roles
+         ) => HasOpenApi (Permit roles :> api) where
+  toOpenApi _ = toOpenApi @api Proxy
+    & components . securitySchemes . at "cbdRole" ?~ idJWT
+    & allOperations . security .~ [SecurityRequirement $ mempty & at "cbdRole" ?~ []]
+    & setResponse 401 (return $ mempty & description .~ "Authorization failed")
+    where
+      idJWT = SecurityScheme
+        (SecuritySchemeHttp (HttpSchemeCustom "role"))
+        (Just "role auth")
 
 (<?>) :: V.Key a -> Request -> Maybe a
 what <?> req = V.lookup what $ vault req
