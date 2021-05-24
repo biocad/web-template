@@ -6,7 +6,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 ### Added
-- added OpenID Connect authorization support for servant.
+- added OpenID Connect authorization support for servant;
+- added role based authentication.
 
 ## [0.1.3.4] - 2021-04-18
 ### Changed
