@@ -236,13 +236,20 @@ instance HasOpenApi api => HasOpenApi (OIDCAuth :> api) where
         (SecuritySchemeHttp $ HttpSchemeBearer $ Just "jwt")
         (Just "jwt token")
 
-data Permit  (rs :: [Symbol])
+-- | Adds authenthication via roles
+--
+-- Usage:
+--
+-- > type API = Permit '["User", "Owner"] :> (....)
+-- route access permitted if user has at least 1 role from specified list
+-- Tooks user roles from vault (originated from jwt token)
+data Permit (rs :: [Symbol])
 
 class KnownSymbols (rs :: [Symbol]) where
-  symbolsVal  :: p rs ->  [Text]
+  symbolsVal :: p rs ->  [Text]
 
 instance KnownSymbols '[] where
-  symbolsVal  _ = []
+  symbolsVal _ = []
 
 instance (KnownSymbol h, KnownSymbols t) => KnownSymbols (h ': t) where
     symbolsVal  _ = pack (symbolVal (Proxy :: Proxy h)) : symbolsVal (Proxy :: Proxy t)
