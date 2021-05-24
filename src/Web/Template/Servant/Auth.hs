@@ -283,11 +283,11 @@ instance ( HasOpenApi api
          , KnownSymbols roles
          ) => HasOpenApi (Permit roles :> api) where
   toOpenApi _ = toOpenApi @api Proxy
-    & components . securitySchemes . at "cbdRole" ?~ idJWT
+    & components . securitySchemes . at "cbdRole" ?~ idRole
     & allOperations . security .~ [SecurityRequirement $ mempty & at "cbdRole" ?~ []]
     & setResponse 401 (return $ mempty & description .~ "Authorization failed")
     where
-      idJWT = SecurityScheme
+      idRole = SecurityScheme
         (SecuritySchemeHttp (HttpSchemeCustom "role"))
         (Just "role auth")
 
