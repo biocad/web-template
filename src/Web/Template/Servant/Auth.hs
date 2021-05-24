@@ -252,7 +252,7 @@ instance KnownSymbols '[] where
   symbolsVal _ = []
 
 instance (KnownSymbol h, KnownSymbols t) => KnownSymbols (h ': t) where
-  symbolsVal  _ = pack (symbolVal (Proxy :: Proxy h)) : symbolsVal (Proxy :: Proxy t)
+  symbolsVal _ = pack (symbolVal (Proxy :: Proxy h)) : symbolsVal (Proxy :: Proxy t)
 
 instance ( HasServer api context
          , KnownSymbols roles
