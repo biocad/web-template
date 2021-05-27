@@ -15,7 +15,7 @@ module Web.Template.Servant.Auth
 -- after https://www.stackage.org/haddock/lts-15.15/servant-server-0.16.2/src/Servant.Server.Experimental.Auth.html
 
 import           Control.Applicative    ((<|>))
-import           Control.Lens           (At (at), ix, (&), (.~), (<&>), (?~), (^?!), (^?), (^..))
+import           Control.Lens           (At (at), ix, (&), (.~), (<&>), (?~), (^?), (^..))
 import           Control.Monad.Except   (runExceptT, unless)
 import           Control.Monad.IO.Class (liftIO)
 import           Data.IORef             (writeIORef, readIORef)
@@ -47,10 +47,9 @@ import           Data.Time.Clock                (UTCTime, diffUTCTime, getCurren
 import           Network.HTTP.Client            (Manager, httpLbs)
 import           Network.HTTP.Client.TLS        (newTlsManager)
 import           Network.HTTP.Types.Header      (hContentType)
-import           Network.URI                    (URI)
+import           Network.URI                    (URI (..))
 import           Network.Wai                    (Request, requestHeaders, vault)
-import           OpenID.Connect.Client.Provider (Discovery (Discovery, jwksUri), keysFromDiscovery)
-import qualified OpenID.Connect.Client.Provider as OIDC
+import           OpenID.Connect.Client.Provider (Discovery, discovery, keysFromDiscovery)
 import           Servant.API                    ((:>))
 import           Servant.OpenApi                (HasOpenApi (..))
 import           Servant.Server                 (HasContextEntry (getContextEntry), HasServer (..),
@@ -125,18 +124,19 @@ data OIDCConfig = OIDCConfig
   { oidcManager       :: Manager -- ^ https manager
   , oidcClientId      :: Text -- ^ audience
   , oidcIssuer        :: URI -- ^ discovery uri
-  , oidcWorkaroundUri :: URI -- ^ temporary solution to openid-connect issue
-  , oidcKeyCache      :: Cache Text JWKSet -- ^ cache - storing validation keys
+  , oidcDiscoCache    :: Cache () Discovery -- ^ cache - storing discovery information
+  , oidcKeyCache      :: Cache () JWKSet -- ^ cache - storing validation keys
   }
 
 defaultOIDCCfg :: IO OIDCConfig
 defaultOIDCCfg = do
-  cache <- Cache.newCache (Just 0)
+  discoCache <- Cache.newCache $ Just 0
+  keyCache <- Cache.newCache $ Just 0
   mgr <- newTlsManager
   return $ OIDCConfig
     { oidcManager = mgr
-    , oidcKeyCache = cache
-    , oidcWorkaroundUri = error "workaround uri not set"
+    , oidcDiscoCache = discoCache
+    , oidcKeyCache = keyCache
     , oidcIssuer = error "discovery uri not set"
     , oidcClientId = error "client id not set"
     }
@@ -144,6 +144,7 @@ defaultOIDCCfg = do
 instance ( HasServer api context
          , HasContextEntry context OIDCConfig
          ) => HasServer (OIDCAuth :> api) context where
+
   type ServerT (OIDCAuth :> api) m = UserId -> ServerT api m
 
   hoistServerWithContext _ pc nt s = hoistServerWithContext @api Proxy pc nt . s
@@ -163,11 +164,29 @@ instance ( HasServer api context
 
         let OIDCConfig {..} = getContextEntry context
 
-        jwkSet <- liftIO (Cache.lookup oidcKeyCache "jwkSet") >>= \case
-          Nothing     -> liftIO
+        disco <- liftIO (Cache.lookup oidcDiscoCache ()) >>= \case
+          Nothing -> liftIO
+            ( discovery
+              (https oidcManager)
+              (appWellKnown oidcIssuer)
+            ) >>= \case
+              Left discoErr -> do
+                logWarn $ show discoErr
+                unauth401
+              Right (disco, mbDiscoExp) -> liftIO $ do
+                now <- getCurrentTime
+                Cache.insert' oidcDiscoCache
+                    (diffTime <$> (mbDiscoExp <|> pure now) <*> pure now)
+                    ()
+                    disco
+                return disco
+          Just disco -> return disco
+
+        jwkSet <- liftIO (Cache.lookup oidcKeyCache ()) >>= \case
+          Nothing -> liftIO
               ( keysFromDiscovery
                 (https oidcManager)
-                (Discovery {jwksUri = OIDC.URI $ oidcWorkaroundUri})
+                disco
               ) >>= \case
                 Left jwtErr -> do
                   logWarn $ show jwtErr
@@ -176,7 +195,7 @@ instance ( HasServer api context
                   now <- getCurrentTime
                   Cache.insert' oidcKeyCache
                     (diffTime <$> (mbKeysExp <|> pure now) <*> pure now)
-                    "jwkSet"
+                    ()
                     jwkSet
                   return jwkSet
           Just jwkSet -> return jwkSet
@@ -188,7 +207,7 @@ instance ( HasServer api context
               jwkSet
               jws
           ) >>= \case
-            Left jwtErr  -> do
+            Left jwtErr -> do
               logWarn $ show jwtErr
               unauth401
             Right claims -> return claims
@@ -212,6 +231,8 @@ instance ( HasServer api context
       getToken r = lookup "Authorization" (requestHeaders r) >>= stripPrefix "Bearer "
 
       decodeToken = decodeCompact @_ @JWTError . LB.fromStrict
+
+      appWellKnown u@URI {..} = u {uriPath = uriPath <> "/.well-known/openid-configuration"}
 
       logWarn = liftIO . log' WARNING ("web-template" :: Text)
 
@@ -245,12 +266,14 @@ instance HasOpenApi api => HasOpenApi (OIDCAuth :> api) where
 --
 -- Usage:
 --
--- > type API = Permit '["User", "Owner"] :> (....)
--- route access permitted if user has at least 1 role from specified list
+-- > type API = Permit '["user", "owner"] :> (....)
+-- Route access permitted if user has at least 1 role from specified list
 -- Takes user roles from vault (originated from jwt token)
+data Permit (rs :: [Symbol])
 
 instance ( HasServer api context
          , KnownSymbols roles
+         , HasContextEntry context OIDCConfig
          ) => HasServer (Permit roles :> api) context where
 
   type ServerT (Permit roles :> api) m = ServerT api m
@@ -265,14 +288,12 @@ instance ( HasServer api context
 
         claims <- liftIO (readIORef pTokenRef) >>= maybe unauth401 return
 
-        let azp = claims
-              ^?! unregisteredClaims
-              . ix "azp" . _String
+        let OIDCConfig {..} = getContextEntry context
 
         let haveRoles = claims
               ^.. unregisteredClaims
               . ix "resource_access"
-              . key azp
+              . key oidcClientId
               . key "roles"
               . values . _String
 
@@ -289,8 +310,6 @@ instance ( HasOpenApi api
     where
       descr = "Action not permitted. Allowed for: "
         <> intercalate ", " (symbolsVal (Proxy :: Proxy roles))
-
-data Permit (rs :: [Symbol])
 
 class KnownSymbols (rs :: [Symbol]) where
   symbolsVal :: p rs ->  [Text]
