@@ -17,7 +17,7 @@ module Web.Template.Servant.Auth
 import           Control.Applicative    ((<|>))
 import           Control.Lens           (At (at), ix, (&), (.~), (<&>), (?~), (^?), (^..))
 import           Control.Monad.Except   (runExceptT, unless)
-import           Control.Monad.IO.Class (liftIO)
+import           Control.Monad.IO.Class (MonadIO, liftIO)
 import           Data.IORef             (writeIORef, readIORef)
 import           Data.Maybe             (catMaybes)
 import           Data.Proxy             (Proxy (..))
@@ -121,17 +121,17 @@ data OIDCAuth
 
 -- | Info needed for OIDC authorization & key cache
 data OIDCConfig = OIDCConfig
-  { oidcManager       :: Manager -- ^ https manager
-  , oidcClientId      :: Text -- ^ audience
-  , oidcIssuer        :: URI -- ^ discovery uri
-  , oidcDiscoCache    :: Cache () Discovery -- ^ cache - storing discovery information
-  , oidcKeyCache      :: Cache () JWKSet -- ^ cache - storing validation keys
+  { oidcManager    :: Manager -- ^ https manager
+  , oidcClientId   :: Text -- ^ audience
+  , oidcIssuer     :: URI -- ^ discovery uri
+  , oidcDiscoCache :: Cache () Discovery -- ^ cache - storing discovery information
+  , oidcKeyCache   :: Cache () JWKSet -- ^ cache - storing validation keys
   }
 
-defaultOIDCCfg :: IO OIDCConfig
+defaultOIDCCfg :: MonadIO m => m OIDCConfig
 defaultOIDCCfg = do
-  discoCache <- Cache.newCache $ Just 0
-  keyCache <- Cache.newCache $ Just 0
+  discoCache <- liftIO $ Cache.newCache $ Just 0
+  keyCache <- liftIO $ Cache.newCache $ Just 0
   mgr <- newTlsManager
   return $ OIDCConfig
     { oidcManager = mgr
