@@ -1,11 +1,11 @@
 # web-template
 
-This is library that encapsulate settings and error-catching for REST-services.
+This library encapsulates settings and error-catching for REST-services.
 
 Convention, that are inside:
 
 * every route has the following structure: `HOST:PORT/v{PATH VERSION}/PATH`;
-* every path can be under authorization. Authorization means that server will look for the field `id` in Cookies.
+* every path can be under authorization. Currently, there are cookie-based auth, OpenID-Connect auth and role-based auth on top of OpenID-Connect.
 
 ## Example
 
