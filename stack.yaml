@@ -6,8 +6,7 @@ packages:
 
 # necessary extra-deps that are not included in the BCD-LTS
 extra-deps:
-  - git: git://github.com/biocad/openid-connect.git
-  commit: 424f8fc70d4d9064f11bbce35f3672982a28ec06
+  git: git://github.com/biocad/openid-connect.git
 
 allow-newer: true
 
