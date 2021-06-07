@@ -1,5 +1,10 @@
 packages:
   *.cabal
 
+source-repository-package
+  type: git
+  location: https://github.com/biocad/openid-connect
+  tag: 424f8fc70d4d9064f11bbce35f3672982a28ec06
+
 package web-template
     ghc-options: -Wall
