@@ -209,10 +209,10 @@ instance ( HasServer api context
       getDisco :: OIDCConfig -> DelayedIO Discovery
       getDisco OIDCConfig {..} = liftIO (Cache.lookup oidcDiscoCache ())
           >>= maybe
-            fetchDiscovery
+            fetchDisco
             return
         where
-          fetchDiscovery = liftIO (discovery (https oidcManager) (appWellKnown oidcIssuer))
+          fetchDisco = liftIO (discovery (https oidcManager) (appWellKnown oidcIssuer))
               >>= either
                 (die ERROR unauth500)
                 (uncurry discoSuccess)
