@@ -5,9 +5,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
-### Added
-- added OpenID Connect authorization support for servant;
-- added role based authentication.
+
+## [0.1.3.5] - 2021-06-08
+### Changed
+- CBDINFRA-318: added OpenID Connect authorization support for servant;
+- CBDINFRA-318: added role based authentication on top of OIDC.
 
 ## [0.1.3.4] - 2021-04-18
 ### Changed
