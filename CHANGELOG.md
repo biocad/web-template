@@ -6,7 +6,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.1.3.5] - 2021-06-07
+## [0.1.3.5] - 2021-06-08
 ### Changed
 - CBDINFRA-318: added OpenID Connect authorization support for servant;
 - CBDINFRA-318: added role based authentication on top of OIDC.
