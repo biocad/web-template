@@ -15,23 +15,23 @@ module Web.Template.Servant.Auth
 -- after https://www.stackage.org/haddock/lts-15.15/servant-server-0.16.2/src/Servant.Server.Experimental.Auth.html
 
 import           Control.Applicative    ((<|>))
-import           Control.Lens           (At (at), ix, (&), (.~), (<&>), (?~), (^?), (^..))
+import           Control.Lens           (At (at), ix, (&), (.~), (<&>), (?~), (^..), (^?))
 import           Control.Monad.Except   (runExceptT, unless)
 import           Control.Monad.IO.Class (MonadIO, liftIO)
-import           Data.IORef             (writeIORef, readIORef)
+import           Data.IORef             (readIORef, writeIORef)
 import           Data.Maybe             (catMaybes)
 import           Data.Proxy             (Proxy (..))
-import           Data.Text              (Text, pack, intercalate)
+import           Data.Text              (Text, intercalate, pack)
 import           Data.Text.Encoding     (decodeUtf8)
 import qualified Data.Vault.Lazy        as V
 import           GHC.Generics           (Generic)
-import GHC.TypeLits (KnownSymbol, Symbol, symbolVal)
+import           GHC.TypeLits           (KnownSymbol, Symbol, symbolVal)
 
 import           Crypto.JOSE.JWK                (JWKSet)
-import           Crypto.JWT                     (JWTError, JWTValidationSettings, SignedJWT, audiencePredicate,
-                                                 decodeCompact, defaultJWTValidationSettings,
-                                                 issuerPredicate, string, unregisteredClaims, uri,
-                                                 verifyClaims, ClaimsSet)
+import           Crypto.JWT                     (ClaimsSet, JWTError, JWTValidationSettings,
+                                                 SignedJWT, audiencePredicate, decodeCompact,
+                                                 defaultJWTValidationSettings, issuerPredicate,
+                                                 string, unregisteredClaims, uri, verifyClaims)
 import           Data.Aeson.Lens                (AsPrimitive (_String), key, values)
 import           Data.ByteString                (ByteString, stripPrefix)
 import qualified Data.ByteString.Lazy           as LB
