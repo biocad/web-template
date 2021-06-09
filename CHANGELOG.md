@@ -6,6 +6,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.3.6] - 2021-06-09
+### Changed
+- Add default expiration time for OIDC discovery document and JWKS when provider does not set
+  expiration.
+
 ## [0.1.3.5] - 2021-06-08
 ### Changed
 - CBDINFRA-318: added OpenID Connect authorization support for servant;
