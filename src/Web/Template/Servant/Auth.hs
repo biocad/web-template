@@ -42,8 +42,8 @@ import           Data.OpenApi.Internal          (ApiKeyLocation (..), ApiKeyPara
                                                  SecurityScheme (..), SecuritySchemeType (..))
 import           Data.OpenApi.Lens              (components, description, security, securitySchemes)
 import           Data.OpenApi.Operation         (allOperations, setResponse)
-import           Data.Time.Clock                (UTCTime, diffUTCTime, getCurrentTime,
-                                                 nominalDiffTimeToSeconds)
+import           Data.Time.Clock                (NominalDiffTime, UTCTime, addUTCTime, diffUTCTime,
+                                                 getCurrentTime, nominalDiffTimeToSeconds)
 import           Network.HTTP.Client            (Manager, httpLbs)
 import           Network.HTTP.Client.TLS        (newTlsManager)
 import           Network.HTTP.Types.Header      (hContentType)
@@ -120,13 +120,21 @@ instance HasOpenApi api => HasOpenApi (CbdAuth :> api) where
 data OIDCAuth
 
 -- | Info needed for OIDC authorization & key cache
-data OIDCConfig = OIDCConfig
-  { oidcManager    :: Manager -- ^ https manager
-  , oidcClientId   :: Text -- ^ audience
-  , oidcIssuer     :: URI -- ^ discovery uri
-  , oidcDiscoCache :: Cache () Discovery -- ^ cache - storing discovery information
-  , oidcKeyCache   :: Cache () JWKSet -- ^ cache - storing validation keys
-  }
+data OIDCConfig
+  = OIDCConfig
+      { oidcManager           :: Manager
+        -- ^ https manager
+      , oidcClientId          :: Text
+        -- ^ audience
+      , oidcIssuer            :: URI
+        -- ^ discovery uri
+      , oidcDiscoCache        :: Cache () Discovery
+        -- ^ cache - storing discovery information
+      , oidcKeyCache          :: Cache () JWKSet
+        -- ^ cache - storing validation keys
+      , oidcDefaultExpiration :: NominalDiffTime
+        -- ^ Default expiration time for discovery document and JWKS
+      }
 
 defaultOIDCCfg :: MonadIO m => m OIDCConfig
 defaultOIDCCfg = do
@@ -139,6 +147,7 @@ defaultOIDCCfg = do
     , oidcKeyCache = keyCache
     , oidcIssuer = error "discovery uri not set"
     , oidcClientId = error "client id not set"
+    , oidcDefaultExpiration = 10 * 60 -- 10 minutes
     }
 
 instance ( HasServer api context
@@ -187,9 +196,11 @@ instance ( HasServer api context
       getToken :: Request -> Maybe ByteString
       getToken r = lookup "Authorization" (requestHeaders r) >>= stripPrefix "Bearer "
 
-      expiration :: UTCTime -> Maybe UTCTime -> Maybe TimeSpec
-      expiration now ex = diffTime
-          <$> (ex <|> pure now)
+      expiration :: UTCTime -> Maybe UTCTime -> NominalDiffTime -> Maybe TimeSpec
+      expiration now ex defaultExp = diffTime
+          <$> (ex <|> pure (addUTCTime defaultExp now))
+              -- If expiration is not set by OIDC provider, cache data for some
+              -- default amount of time, to avoid too many requests.
           <*> pure now
         where
           tTreshold = 60 -- consider token expired 'tTreshold' seconds earlier
@@ -221,7 +232,7 @@ instance ( HasServer api context
 
               discoSuccess disco mbDiscoExp = liftIO $ do
                 now <- getCurrentTime
-                Cache.insert' oidcDiscoCache (expiration now mbDiscoExp) () disco
+                Cache.insert' oidcDiscoCache (expiration now mbDiscoExp oidcDefaultExpiration) () disco
                 return disco
 
       getJWKSet :: OIDCConfig -> Discovery -> DelayedIO JWKSet
@@ -237,7 +248,7 @@ instance ( HasServer api context
             where
               keysSuccess jwkSet mbKeysExp = liftIO $ do
                   now <- getCurrentTime
-                  Cache.insert' oidcKeyCache (expiration now mbKeysExp) () jwkSet
+                  Cache.insert' oidcKeyCache (expiration now mbKeysExp oidcDefaultExpiration) () jwkSet
                   return jwkSet
 
       getClaims :: OIDCConfig -> SignedJWT -> JWKSet -> DelayedIO ClaimsSet
