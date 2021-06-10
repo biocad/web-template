@@ -1,5 +1,5 @@
 name:                web-template
-version:             0.1.3.4
+version:             0.1.3.6
 synopsis:            Web template
 description:
             Web template includes:
@@ -52,10 +52,11 @@ library
                      , http-types
                      , jose >= 0.8.4
                      , lens
+                     , lens-aeson
                      , mtl
                      , network-uri
                      , openapi3 >= 3.1.0
-                     , openid-connect >= 0.1.0.0
+                     , openid-connect >= 0.1.1
                      , resourcet
                      , scotty
                      , servant >= 0.18

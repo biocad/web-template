@@ -1,6 +1,5 @@
-packages: *.cabal
+packages:
+  *.cabal
 
 package web-template
     ghc-options: -Wall
-
-allow-newer: openid-connect:aeson, http-client

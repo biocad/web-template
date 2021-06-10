@@ -6,8 +6,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 ### Added
-- added OpenID Connect authorization support for servant.
 - Add a way to describe fields in Swagger schemas.
+
+## [0.1.3.6] - 2021-06-09
+### Changed
+- Add default expiration time for OIDC discovery document and JWKS when provider does not set
+  expiration.
+
+## [0.1.3.5] - 2021-06-08
+### Changed
+- CBDINFRA-318: added OpenID Connect authorization support for servant;
+- CBDINFRA-318: added role based authentication on top of OIDC.
 
 ## [0.1.3.4] - 2021-04-18
 ### Changed

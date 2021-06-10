@@ -4,25 +4,24 @@
 {-# LANGUAGE TypeOperators     #-}
 
 import Data.Aeson                      (encode)
-import Data.Maybe                      (fromJust)
 import Data.OpenApi                    (OpenApi)
 import Data.Proxy                      (Proxy (..))
 import Data.Text                       (Text)
-import Network.URI                     (parseURI)
 import Servant                         (Description, Get, Handler, JSON, PlainText, Post, ReqBody,
                                         Summary, (:<|>) (..), (:>))
 import Servant.OpenApi                 (toOpenApi)
 import Servant.Server.Internal.Context (Context (..))
 
-import Web.Template.Servant (OIDCAuth, OIDCConfig (..), SwaggerSchemaUI, UserId (..), Version,
-                             defaultOIDCCfg, runServantServerWithContext, swaggerSchemaUIServer)
+import Web.Template.Servant (OIDCAuth, OIDCConfig (..), Permit, SwaggerSchemaUI, UserId (..),
+                             Version, defaultOIDCCfg, runServantServerWithContext,
+                             swaggerSchemaUIServer)
 import Web.Template.Wai     (defaultHandleLog, defaultHeaderCORS)
 
 type API = Version "1" :>
   ( Summary "ping route" :> Description "Returns pong" :> "ping" :> Get '[PlainText] Text
   :<|> OIDCAuth :>
     ( Summary "hello route" :> Description "Returns hello + user id" :> "hello" :> Get '[PlainText] Text
-    :<|> "post" :> ReqBody '[JSON] Int :> Post '[JSON] Text
+    :<|> Permit '["set role here", "or here"] :> "post" :> ReqBody '[JSON] Int :> Post '[JSON] Text
     )
   )
 
@@ -46,7 +45,8 @@ main = do
         id
         (defaultHeaderCORS . defaultHandleLog)
         5000
-        (cfg {oidcWorkaroundUri = uri} :. EmptyContext )
+        (cfg {oidcIssuer = uri, oidcClientId = cId} :. EmptyContext )
         $ swaggerSchemaUIServer swagger :<|> (pingH :<|> (\userId -> helloH userId :<|> postH userId))
   where
-    uri = fromJust $ parseURI "https://          .   "
+    uri = error "set uri here"
+    cId = error "set client id here"
