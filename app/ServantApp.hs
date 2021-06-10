@@ -17,7 +17,6 @@ import Web.Template.Servant (OIDCAuth, OIDCConfig (..), Permit, SwaggerSchemaUI,
                              swaggerSchemaUIServer)
 import Web.Template.Wai     (defaultHandleLog, defaultHeaderCORS)
 
-
 type API = Version "1" :>
   ( Summary "ping route" :> Description "Returns pong" :> "ping" :> Get '[PlainText] Text
   :<|> OIDCAuth :>

@@ -6,6 +6,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.3.7] - 2021-06-10
+### Added
+- Add a way to describe fields in Swagger schemas.
+
 ## [0.1.3.6] - 2021-06-09
 ### Changed
 - Add default expiration time for OIDC discovery document and JWKS when provider does not set

@@ -114,9 +114,12 @@ instance HasOpenApi api => HasOpenApi (CbdAuth :> api) where
 -- Usage:
 --
 -- > type API = OIDCAuth :> (....)
--- Takes token from 'Authorization' header
--- Handlers will get an 'UserId' argument
--- Stores token and claims in vault
+--
+-- Takes token from 'Authorization' header.
+--
+-- Handlers will get an 'UserId' argument.
+--
+-- Stores token and claims in vault.
 data OIDCAuth
 
 -- | Info needed for OIDC authorization & key cache
