@@ -6,6 +6,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.3.8] - 2021-06-22
+### Added
+- Possibility to accept Service Token in `OIDCAuth`. Token is considered a Service Token if it
+  lacks the `object_guid` claim. `preferred_username` claim is used as user id instead.
+
 ## [0.1.3.7] - 2021-06-10
 ### Added
 - Add a way to describe fields in Swagger schemas.
