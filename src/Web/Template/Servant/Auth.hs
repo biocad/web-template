@@ -137,6 +137,8 @@ data OIDCConfig
         -- ^ cache - storing validation keys
       , oidcDefaultExpiration :: NominalDiffTime
         -- ^ Default expiration time for discovery document and JWKS
+      , oidcAllowServiceToken :: Bool
+        -- ^ Whether to accept service token (defined as "token without object_guid claim")
       }
 
 defaultOIDCCfg :: MonadIO m => m OIDCConfig
@@ -151,6 +153,7 @@ defaultOIDCCfg = do
     , oidcIssuer = error "discovery uri not set"
     , oidcClientId = error "client id not set"
     , oidcDefaultExpiration = 10 * 60 -- 10 minutes
+    , oidcAllowServiceToken = False
     }
 
 instance ( HasServer api context
@@ -178,10 +181,13 @@ instance ( HasServer api context
 
         claims <- getClaims cfg jwt jwkSet
 
+        let guid = claims ^? unregisteredClaims . ix "object_guid" . _String
+        let username = claims ^? unregisteredClaims . ix "preferred_username" . _String
+
         uid <- maybe
           (die ERROR unauth401 ("No object_guid found" :: Text))
           return
-          $ claims ^? unregisteredClaims . ix "object_guid" . _String
+          (guid <|> (if oidcAllowServiceToken cfg then username else Nothing))
 
         liftIO $ sequence_ $ catMaybes
           [ userIdVaultKey <?> req <&> flip writeIORef (Just uid)
