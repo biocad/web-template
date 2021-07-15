@@ -9,6 +9,7 @@ module Web.Template.Servant.Auth
   , UserId (..)
   , OIDCConfig (..)
   , defaultOIDCCfg
+  , OIDCUser (..)
   , Permit
   ) where
 
@@ -122,6 +123,15 @@ instance HasOpenApi api => HasOpenApi (CbdAuth :> api) where
 -- Stores token and claims in vault.
 data OIDCAuth
 
+
+data OIDCUser
+  = OIDCUser
+      { oidcUserId      :: UserId
+      , oidcAccessToken :: Text
+      , oidcParsedToken :: ClaimsSet
+      }
+  deriving (Eq, Show, Generic)
+
 -- | Info needed for OIDC authorization & key cache
 data OIDCConfig
   = OIDCConfig
@@ -160,7 +170,7 @@ instance ( HasServer api context
          , HasContextEntry context OIDCConfig
          ) => HasServer (OIDCAuth :> api) context where
 
-  type ServerT (OIDCAuth :> api) m = UserId -> ServerT api m
+  type ServerT (OIDCAuth :> api) m = OIDCUser -> ServerT api m
 
   hoistServerWithContext _ pc nt s = hoistServerWithContext @api Proxy pc nt . s
 
@@ -195,7 +205,11 @@ instance ( HasServer api context
           , pTokenVaultKey <?> req <&> flip writeIORef (Just claims)
           ]
 
-        return $ UserId uid
+        return OIDCUser
+          { oidcUserId = UserId uid
+          , oidcAccessToken = decodeUtf8 token
+          , oidcParsedToken = claims
+          }
     where
       https mgr = (`httpLbs` mgr)
 

@@ -1,5 +1,6 @@
 {-# LANGUAGE DataKinds         #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE RecordWildCards   #-}
 {-# LANGUAGE TypeApplications  #-}
 {-# LANGUAGE TypeOperators     #-}
 
@@ -12,9 +13,9 @@ import Servant                         (Description, Get, Handler, JSON, PlainTe
 import Servant.OpenApi                 (toOpenApi)
 import Servant.Server.Internal.Context (Context (..))
 
-import Web.Template.Servant (OIDCAuth, OIDCConfig (..), Permit, SwaggerSchemaUI, UserId (..),
-                             Version, defaultOIDCCfg, runServantServerWithContext,
-                             swaggerSchemaUIServer)
+import Web.Template.Servant (OIDCAuth, OIDCConfig (..), OIDCUser (OIDCUser, oidcUserId), Permit,
+                             SwaggerSchemaUI, UserId (..), Version, defaultOIDCCfg,
+                             runServantServerWithContext, swaggerSchemaUIServer)
 import Web.Template.Wai     (defaultHandleLog, defaultHeaderCORS)
 
 type API = Version "1" :>
@@ -46,7 +47,7 @@ main = do
         (defaultHeaderCORS . defaultHandleLog)
         5000
         (cfg {oidcIssuer = uri, oidcClientId = cId} :. EmptyContext )
-        $ swaggerSchemaUIServer swagger :<|> (pingH :<|> (\userId -> helloH userId :<|> postH userId))
+        $ swaggerSchemaUIServer swagger :<|> (pingH :<|> (\OIDCUser{..} -> helloH oidcUserId :<|> postH oidcUserId))
   where
     uri = error "set uri here"
     cId = error "set client id here"
