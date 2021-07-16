@@ -6,6 +6,10 @@ module Web.Template.Servant
   , SwaggerSchemaUI
   , swaggerSchemaUIServer
 
+  , userIdVaultKey
+  , tokenVaultKey
+  , pTokenVaultKey
+
   , module Web.Template.Servant.Aeson
   , module Web.Template.Servant.API
   , module Web.Template.Servant.Auth
@@ -20,6 +24,7 @@ import Servant.Swagger.UI       (SwaggerSchemaUI, swaggerSchemaUIServer)
 import Servant.Server           (Context, DefaultErrorFormatters, ErrorFormatters, HasContextEntry,
                                  HasServer, Server, serveWithContext, type (.++), (.++))
 
+import Web.Template.Log   (pTokenVaultKey, tokenVaultKey, userIdVaultKey)
 import Web.Template.Types (Port)
 import Web.Template.Wai   (defaultHandleLog, defaultHeaderCORS, warpSettings)
 

@@ -6,6 +6,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.3.9] - 2021-07-015
+### Changed
+- Pass access token to handlers.
+
 ## [0.1.3.8] - 2021-06-22
 ### Added
 - Possibility to accept Service Token in `OIDCAuth`. Token is considered a Service Token if it
