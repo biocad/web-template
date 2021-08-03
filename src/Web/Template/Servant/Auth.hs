@@ -9,6 +9,7 @@ module Web.Template.Servant.Auth
   , UserId (..)
   , OIDCConfig (..)
   , defaultOIDCCfg
+  , oidcCfgWithManager
   , OIDCUser (..)
   , Permit
   ) where
@@ -156,6 +157,20 @@ defaultOIDCCfg = do
   discoCache <- liftIO $ Cache.newCache $ Just 0
   keyCache <- liftIO $ Cache.newCache $ Just 0
   mgr <- newTlsManager
+  return $ OIDCConfig
+    { oidcManager = mgr
+    , oidcDiscoCache = discoCache
+    , oidcKeyCache = keyCache
+    , oidcIssuer = error "discovery uri not set"
+    , oidcClientId = error "client id not set"
+    , oidcDefaultExpiration = 10 * 60 -- 10 minutes
+    , oidcAllowServiceToken = False
+    }
+
+oidcCfgWithManager :: MonadIO m => Manager -> m OIDCConfig
+oidcCfgWithManager mgr = do
+  discoCache <- liftIO $ Cache.newCache $ Just 0
+  keyCache <- liftIO $ Cache.newCache $ Just 0
   return $ OIDCConfig
     { oidcManager = mgr
     , oidcDiscoCache = discoCache
