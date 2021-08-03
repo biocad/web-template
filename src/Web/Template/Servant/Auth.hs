@@ -153,19 +153,7 @@ data OIDCConfig
       }
 
 defaultOIDCCfg :: MonadIO m => m OIDCConfig
-defaultOIDCCfg = do
-  discoCache <- liftIO $ Cache.newCache $ Just 0
-  keyCache <- liftIO $ Cache.newCache $ Just 0
-  mgr <- newTlsManager
-  return $ OIDCConfig
-    { oidcManager = mgr
-    , oidcDiscoCache = discoCache
-    , oidcKeyCache = keyCache
-    , oidcIssuer = error "discovery uri not set"
-    , oidcClientId = error "client id not set"
-    , oidcDefaultExpiration = 10 * 60 -- 10 minutes
-    , oidcAllowServiceToken = False
-    }
+defaultOIDCCfg = newTlsManager >>= oidcCfgWithManager
 
 oidcCfgWithManager :: MonadIO m => Manager -> m OIDCConfig
 oidcCfgWithManager mgr = do
