@@ -6,7 +6,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.1.3.9] - 2021-07-015
+## [0.1.3.10] - 2021-08-03
+### Added
+- Create OIDC config with provided tls manager.
+
+## [0.1.3.9] - 2021-07-15
 ### Changed
 - Pass access token to handlers.
 

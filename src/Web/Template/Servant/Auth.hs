@@ -9,6 +9,7 @@ module Web.Template.Servant.Auth
   , UserId (..)
   , OIDCConfig (..)
   , defaultOIDCCfg
+  , oidcCfgWithManager
   , OIDCUser (..)
   , Permit
   ) where
@@ -152,10 +153,12 @@ data OIDCConfig
       }
 
 defaultOIDCCfg :: MonadIO m => m OIDCConfig
-defaultOIDCCfg = do
+defaultOIDCCfg = newTlsManager >>= oidcCfgWithManager
+
+oidcCfgWithManager :: MonadIO m => Manager -> m OIDCConfig
+oidcCfgWithManager mgr = do
   discoCache <- liftIO $ Cache.newCache $ Just 0
   keyCache <- liftIO $ Cache.newCache $ Just 0
-  mgr <- newTlsManager
   return $ OIDCConfig
     { oidcManager = mgr
     , oidcDiscoCache = discoCache
