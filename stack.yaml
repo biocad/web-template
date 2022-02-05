@@ -5,7 +5,9 @@ packages:
 - '.'
 
 # necessary extra-deps that are not included in the BCD-LTS
-extra-deps: []
+extra-deps:
+  # FIXME move to bcd-haskell-lts before releasing web-template
+  - servant-swagger-ui-0.3.5.4.5.0
 allow-newer: true
 
 flags: {}

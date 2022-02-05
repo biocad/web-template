@@ -15,7 +15,9 @@ maintainer:          neterebskiy@biocad.ru
 copyright:           (c) 2017, BIOCAD CBD
 category:            Web
 build-type:          Simple
-extra-source-files:  README.md
+extra-source-files:
+    README.md
+    index.html.tmpl
 cabal-version:       >=1.10
 
 library
@@ -45,6 +47,7 @@ library
                      , cookie
                      , data-default
                      , fast-logger
+                     , file-embed-lzma
                      , generic-override >= 0.2.0.0
                      , generic-override-aeson
                      , http-client
@@ -62,7 +65,8 @@ library
                      , servant >= 0.18
                      , servant-openapi3
                      , servant-server >= 0.18
-                     , servant-swagger-ui >= 0.3.5
+                     , servant-swagger-ui >= 0.3.5.4.5.0
+                     , servant-swagger-ui-core >= 0.3.5
                      , text
                      , time
                      , time
