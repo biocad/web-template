@@ -19,7 +19,7 @@ module Web.Template.Servant.Auth
 -- after https://www.stackage.org/haddock/lts-15.15/servant-server-0.16.2/src/Servant.Server.Experimental.Auth.html
 
 import           Control.Applicative    ((<|>))
-import           Control.Lens           (at, ix, (&), (.~), (<&>), (?~), (^..), (^?))
+import           Control.Lens           (Iso', at, coerced, ix, (&), (.~), (<&>), (?~), (^..), (^?))
 import           Control.Monad.Except   (runExceptT, unless)
 import           Control.Monad.IO.Class (MonadIO, liftIO)
 import           Data.IORef             (readIORef, writeIORef)
@@ -42,10 +42,11 @@ import           Data.ByteString                (ByteString, stripPrefix)
 import qualified Data.ByteString.Lazy           as LB
 import           Data.Cache                     (Cache)
 import qualified Data.Cache                     as Cache
-import           Data.OpenApi                   (OpenApi, URL (..))
+import           Data.OpenApi                   (Definitions, OpenApi, URL (..))
 import           Data.OpenApi.Internal          (ApiKeyLocation (..), ApiKeyParams (..),
-                                                 HttpSchemeType (..), SecurityRequirement (..),
-                                                 SecurityScheme (..), SecuritySchemeType (..))
+                                                 HttpSchemeType (..), SecurityDefinitions (..),
+                                                 SecurityRequirement (..), SecurityScheme (..),
+                                                 SecuritySchemeType (..))
 import           Data.OpenApi.Lens              (components, description, security, securitySchemes)
 import           Data.OpenApi.Operation         (allOperations, setResponse)
 import qualified Data.Text                      as T
@@ -111,7 +112,7 @@ instance HasServer api context => HasServer (CbdAuth :> api) context where
 
 instance HasOpenApi api => HasOpenApi (CbdAuth :> api) where
   toOpenApi _ = toOpenApi @api Proxy
-    & components . securitySchemes . at "cbdCookie" ?~ idCookie
+    & components . securitySchemes . securityDefinitions . at "cbdCookie" ?~ idCookie
     & allOperations . security .~ [SecurityRequirement $ mempty & at "cbdCookie" ?~ []]
     & setResponse 401 (return $ mempty & description .~ "Authorization failed")
     where
@@ -298,8 +299,8 @@ instance ( HasServer api context
 
 instance HasOpenApi api => HasOpenApi (OIDCAuth :> api) where
   toOpenApi _ = toOpenApi @api Proxy
-    & components . securitySchemes . at "cbdJWT" ?~ idJWT
-    & components . securitySchemes . at "cbdOIDC" ?~ idOIDC
+    & components . securitySchemes . securityDefinitions . at "cbdJWT" ?~ idJWT
+    & components . securitySchemes . securityDefinitions . at "cbdOIDC" ?~ idOIDC
     & allOperations . security .~
         [ SecurityRequirement $ mempty & at "cbdJWT" ?~ []
         , SecurityRequirement $ mempty & at "cbdOIDC" ?~ []
@@ -413,7 +414,7 @@ swaggerSchemaUIBCDServer oidcConfig openapi =
       T.replace "BIOCAD_OIDC_CLIENT_ID" (oidcClientId oidcConfig)
       swaggerUiIndexBCDTemplate
     openapiWithOidcUrl = openapi
-      & components . securitySchemes . at "cbdOIDC" ?~
+      & components . securitySchemes . securityDefinitions . at "cbdOIDC" ?~
         SecurityScheme
           (SecuritySchemeOpenIdConnect $ URL $ T.pack $ show $ appWellKnown $ oidcIssuer oidcConfig)
           (Just "BIOCAD's OpenID Connect auth")
@@ -421,3 +422,6 @@ swaggerSchemaUIBCDServer oidcConfig openapi =
 -- | Append OIDC's @.well-known/openid-configuration" part to the base of OIDC issuer URI.
 appWellKnown :: URI -> URI
 appWellKnown u@URI {..} = u {uriPath = uriPath <> "/.well-known/openid-configuration"}
+
+securityDefinitions :: Iso' SecurityDefinitions (Definitions SecurityScheme)
+securityDefinitions = coerced
