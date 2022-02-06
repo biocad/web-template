@@ -2,6 +2,7 @@
 {-# LANGUAGE OverloadedStrings   #-}
 {-# LANGUAGE RecordWildCards     #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TemplateHaskell     #-}
 
 module Web.Template.Servant.Auth
   ( CbdAuth
@@ -12,12 +13,13 @@ module Web.Template.Servant.Auth
   , oidcCfgWithManager
   , OIDCUser (..)
   , Permit
+  , swaggerSchemaUIBCDServer
   ) where
 
 -- after https://www.stackage.org/haddock/lts-15.15/servant-server-0.16.2/src/Servant.Server.Experimental.Auth.html
 
 import           Control.Applicative    ((<|>))
-import           Control.Lens           (At (at), ix, (&), (.~), (<&>), (?~), (^..), (^?))
+import           Control.Lens           (Iso', at, coerced, ix, (&), (.~), (<&>), (?~), (^..), (^?))
 import           Control.Monad.Except   (runExceptT, unless)
 import           Control.Monad.IO.Class (MonadIO, liftIO)
 import           Data.IORef             (readIORef, writeIORef)
@@ -34,18 +36,23 @@ import           Crypto.JWT                     (ClaimsSet, JWTError, JWTValidat
                                                  SignedJWT, audiencePredicate, decodeCompact,
                                                  defaultJWTValidationSettings, issuerPredicate,
                                                  string, unregisteredClaims, uri, verifyClaims)
+import           Data.Aeson                     (Value)
 import           Data.Aeson.Lens                (AsPrimitive (_String), key, values)
 import           Data.ByteString                (ByteString, stripPrefix)
 import qualified Data.ByteString.Lazy           as LB
 import           Data.Cache                     (Cache)
 import qualified Data.Cache                     as Cache
+import           Data.OpenApi                   (Definitions, OpenApi, URL (..))
 import           Data.OpenApi.Internal          (ApiKeyLocation (..), ApiKeyParams (..),
-                                                 HttpSchemeType (..), SecurityRequirement (..),
-                                                 SecurityScheme (..), SecuritySchemeType (..))
+                                                 HttpSchemeType (..), SecurityDefinitions (..),
+                                                 SecurityRequirement (..), SecurityScheme (..),
+                                                 SecuritySchemeType (..))
 import           Data.OpenApi.Lens              (components, description, security, securitySchemes)
 import           Data.OpenApi.Operation         (allOperations, setResponse)
+import qualified Data.Text                      as T
 import           Data.Time.Clock                (NominalDiffTime, UTCTime, addUTCTime, diffUTCTime,
                                                  getCurrentTime, nominalDiffTimeToSeconds)
+import           FileEmbedLzma                  (embedText)
 import           Network.HTTP.Client            (Manager, httpLbs)
 import           Network.HTTP.Client.TLS        (newTlsManager)
 import           Network.HTTP.Types.Header      (hContentType)
@@ -58,6 +65,8 @@ import           Servant.Server                 (HasContextEntry (getContextEntr
                                                  ServerError (..), err401, err403, err500)
 import           Servant.Server.Internal        (DelayedIO, addAuthCheck, delayedFailFatal,
                                                  withRequest)
+import           Servant.Swagger.UI             (SwaggerSchemaUI', swaggerUiFiles)
+import           Servant.Swagger.UI.Core        (swaggerSchemaUIServerImpl)
 import           System.Clock                   (TimeSpec (..))
 import           Web.Cookie                     (parseCookiesText)
 
@@ -103,7 +112,7 @@ instance HasServer api context => HasServer (CbdAuth :> api) context where
 
 instance HasOpenApi api => HasOpenApi (CbdAuth :> api) where
   toOpenApi _ = toOpenApi @api Proxy
-    & components . securitySchemes . at "cbdCookie" ?~ idCookie
+    & components . securitySchemes . securityDefinitions . at "cbdCookie" ?~ idCookie
     & allOperations . security .~ [SecurityRequirement $ mempty & at "cbdCookie" ?~ []]
     & setResponse 401 (return $ mempty & description .~ "Authorization failed")
     where
@@ -254,8 +263,6 @@ instance ( HasServer api context
                 (die ERROR unauth500)
                 (uncurry discoSuccess)
             where
-              appWellKnown u@URI {..} = u {uriPath = uriPath <> "/.well-known/openid-configuration"}
-
               discoSuccess disco mbDiscoExp = liftIO $ do
                 now <- getCurrentTime
                 Cache.insert' oidcDiscoCache (expiration now mbDiscoExp oidcDefaultExpiration) () disco
@@ -292,13 +299,22 @@ instance ( HasServer api context
 
 instance HasOpenApi api => HasOpenApi (OIDCAuth :> api) where
   toOpenApi _ = toOpenApi @api Proxy
-    & components . securitySchemes . at "cbdJWT" ?~ idJWT
-    & allOperations . security .~ [SecurityRequirement $ mempty & at "cbdJWT" ?~ []]
+    & components . securitySchemes . securityDefinitions . at "cbdJWT" ?~ idJWT
+    & components . securitySchemes . securityDefinitions . at "cbdOIDC" ?~ idOIDC
+    & allOperations . security .~
+        [ SecurityRequirement $ mempty & at "cbdJWT" ?~ []
+        , SecurityRequirement $ mempty & at "cbdOIDC" ?~ []
+        ]
     & setResponse 401 (return $ mempty & description .~ "Authorization failed")
     where
       idJWT = SecurityScheme
         (SecuritySchemeHttp $ HttpSchemeBearer $ Just "jwt")
         (Just "jwt token")
+      idOIDC = SecurityScheme
+        -- It is expected that client will update this field in runtime before serving
+        -- generated swagegr, as there is no easy way to pass it to this instance.
+        (SecuritySchemeOpenIdConnect $ URL "NOT SET")
+        (Just "BIOCAD's OpenID Connect auth")
 
 -- | Adds authenthication via roles
 --
@@ -378,3 +394,34 @@ unauth500 = delayedFailFatal $ err500
   { errBody = "{\"error\": \"Internal server error\"}"
   , errHeaders = [(hContentType, "application/json")]
   }
+
+swaggerUiIndexBCDTemplate :: Text
+swaggerUiIndexBCDTemplate = $(embedText "index.html.tmpl")
+
+-- | Version of 'Servant.Swagger.UI.swaggerSchemaUIServer' that uses
+-- our @index.html@ template to enable PKCE auth flow and prefill
+-- OpenID client id.
+swaggerSchemaUIBCDServer
+  :: Monad m
+  => ServerT api m ~ m Value
+  => OIDCConfig
+  -> OpenApi
+  -> ServerT (SwaggerSchemaUI' dir api) m
+swaggerSchemaUIBCDServer oidcConfig openapi =
+  swaggerSchemaUIServerImpl swaggerUiIndexTemplateFilled swaggerUiFiles openapiWithOidcUrl
+  where
+    swaggerUiIndexTemplateFilled =
+      T.replace "BIOCAD_OIDC_CLIENT_ID" (oidcClientId oidcConfig)
+      swaggerUiIndexBCDTemplate
+    openapiWithOidcUrl = openapi
+      & components . securitySchemes . securityDefinitions . at "cbdOIDC" ?~
+        SecurityScheme
+          (SecuritySchemeOpenIdConnect $ URL $ T.pack $ show $ appWellKnown $ oidcIssuer oidcConfig)
+          (Just "BIOCAD's OpenID Connect auth")
+
+-- | Append OIDC's @.well-known/openid-configuration" part to the base of OIDC issuer URI.
+appWellKnown :: URI -> URI
+appWellKnown u@URI {..} = u {uriPath = uriPath <> "/.well-known/openid-configuration"}
+
+securityDefinitions :: Iso' SecurityDefinitions (Definitions SecurityScheme)
+securityDefinitions = coerced

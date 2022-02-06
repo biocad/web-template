@@ -6,6 +6,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.3.11] - 2022-02-06
+### Added
+- Custom `swagger-ui` wrapper that allows to use BIOCAD's OIDC authorization from the UI.
+- Compatibility with `openapi3` 3.2.0 and higher.
+
 ## [0.1.3.10] - 2021-08-03
 ### Added
 - Create OIDC config with provided tls manager.
