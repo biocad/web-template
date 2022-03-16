@@ -13,8 +13,6 @@ import Data.OpenApi                 (ToSchema (..), defaultSchemaOptions, descri
                                      genericDeclareNamedSchema, schema)
 import Data.OpenApi.Internal.Schema (GToSchema, rename)
 import Data.Override                (Override)
-import Data.Override.Aeson          ()
-import Data.Override.Internal       (Overridden, Using)
 import Data.Proxy                   (Proxy (..))
 import Data.Text                    (Text, pack)
 import Data.Typeable                (Typeable)
@@ -88,11 +86,3 @@ instance
     declareNamedSchema p =
       -- Prevent "Override" from showing up in schema name.
       rename (Just $ pack $ show $ typeRep @a) <$> genericDeclareNamedSchema defaultSchemaOptions p
-
-instance
-  ( Typeable a
-  , Typeable xs
-  , Typeable ms
-  , ToSchema (Using ms a xs)
-  ) => ToSchema (Overridden ms a xs) where
-  declareNamedSchema _ = declareNamedSchema @(Using ms a xs) Proxy
