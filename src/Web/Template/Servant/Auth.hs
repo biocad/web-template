@@ -119,6 +119,7 @@ instance HasOpenApi api => HasOpenApi (CbdAuth :> api) where
       idCookie = SecurityScheme
         (SecuritySchemeApiKey (ApiKeyParams "id" ApiKeyCookie))
         (Just "`id` cookie")
+        mempty
 
 -- | Adds authenthication via jwt
 --
@@ -310,11 +311,13 @@ instance HasOpenApi api => HasOpenApi (OIDCAuth :> api) where
       idJWT = SecurityScheme
         (SecuritySchemeHttp $ HttpSchemeBearer $ Just "jwt")
         (Just "jwt token")
+        mempty
       idOIDC = SecurityScheme
         -- It is expected that client will update this field in runtime before serving
         -- generated swagegr, as there is no easy way to pass it to this instance.
         (SecuritySchemeOpenIdConnect $ URL "NOT SET")
         (Just "BIOCAD's OpenID Connect auth")
+        mempty
 
 -- | Adds authenthication via roles
 --
@@ -418,6 +421,7 @@ swaggerSchemaUIBCDServer oidcConfig openapi =
         SecurityScheme
           (SecuritySchemeOpenIdConnect $ URL $ T.pack $ show $ appWellKnown $ oidcIssuer oidcConfig)
           (Just "BIOCAD's OpenID Connect auth")
+          mempty
 
 -- | Append OIDC's @.well-known/openid-configuration" part to the base of OIDC issuer URI.
 appWellKnown :: URI -> URI
