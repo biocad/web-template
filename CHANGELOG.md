@@ -6,6 +6,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.3.12] - 2022-07-17
+### Changed
+- Update imports to support `lens-aeson` >=1.2.
+
 ## [0.1.3.11] - 2022-02-06
 ### Added
 - Custom `swagger-ui` wrapper that allows to use BIOCAD's OIDC authorization from the UI.
