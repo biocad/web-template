@@ -37,7 +37,7 @@ import           Crypto.JWT                     (ClaimsSet, JWTError, JWTValidat
                                                  defaultJWTValidationSettings, issuerPredicate,
                                                  string, unregisteredClaims, uri, verifyClaims)
 import           Data.Aeson                     (Value)
-import           Data.Aeson.Lens                (AsPrimitive (_String), key, values)
+import           Data.Aeson.Lens                (_String, key, values)
 import           Data.ByteString                (ByteString, stripPrefix)
 import qualified Data.ByteString.Lazy           as LB
 import           Data.Cache                     (Cache)
