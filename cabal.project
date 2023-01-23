@@ -8,3 +8,23 @@ source-repository-package
   type: git
   location: https://github.com/biocad/bcd-log
   tag: 16808faa4db0d3d94ff4006c5ca88691551ebe40
+
+source-repository-package
+  type: git
+  location: https://github.com/biocad/openid-connect.git
+  tag: fd2a7dd8cf518bfa90ea5111e09d88069630563a
+  --sha256: 1yz04a0y88652dfd1rgswf2qm7g3wxvc52931d0l60xy4awjj536
+
+source-repository-package
+  type: git
+  location: https://github.com/maksbotan/generic-override.git
+  tag: a91ca0b369a668db71a22c118f4b0e546c4cb8d2
+  subdir: generic-override
+  --sha256: 0bhqnz36l8a1fyh63r5fr1v6mav7ri1s7xsysvdjlm0qq7mndpgf
+
+source-repository-package
+  type: git
+  location: https://github.com/maksbotan/generic-override.git
+  tag: 79432eaa084705d6ac3f5b877287a74815a8eb71
+  subdir: generic-override-aeson
+  --sha256: 1qqb39lw71q7637bh2xpdcxrkyh9r6r55z2xmkgcgbwvx0wi5l9l
