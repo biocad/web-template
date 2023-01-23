@@ -1,0 +1,3 @@
+branches: master
+
+allow-failures: >=9.2
