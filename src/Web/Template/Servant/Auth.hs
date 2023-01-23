@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP                 #-}
 {-# LANGUAGE LambdaCase          #-}
 {-# LANGUAGE OverloadedStrings   #-}
 {-# LANGUAGE RecordWildCards     #-}
@@ -37,6 +38,11 @@ import           Crypto.JWT                     (ClaimsSet, JWTError, JWTValidat
                                                  defaultJWTValidationSettings, issuerPredicate,
                                                  string, unregisteredClaims, uri, verifyClaims)
 import           Data.Aeson                     (Value)
+
+#if MIN_VERSION_aeson(2, 0, 0)
+import           Data.Aeson.Key                 (fromText)
+#endif
+
 import           Data.Aeson.Lens                (_String, key, values)
 import           Data.ByteString                (ByteString, stripPrefix)
 import qualified Data.ByteString.Lazy           as LB
@@ -347,7 +353,11 @@ instance ( HasServer api context
         let haveRoles = claims
               ^.. unregisteredClaims
               . ix "resource_access"
+#if MIN_VERSION_aeson(2, 0, 0)
+              . key (fromText oidcClientId)
+#else
               . key oidcClientId
+#endif
               . key "roles"
               . values . _String
 
