@@ -19,6 +19,11 @@ extra-source-files:
     README.md
     index.html.tmpl
 cabal-version:       >=1.10
+tested-with:
+  GHC ==8.10.7
+   || ==9.0.2
+   || ==9.2.5
+   || ==9.4.4
 
 library
   hs-source-dirs:      src
