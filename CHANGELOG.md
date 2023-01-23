@@ -6,6 +6,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.3.13] - 2023-01-23
+### Changed
+- Add check for aeson 2, for GHC 9.2.5.
+
 ## [0.1.3.12] - 2022-07-17
 ### Changed
 - Update imports to support `lens-aeson` >=1.2.
