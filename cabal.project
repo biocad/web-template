@@ -3,3 +3,8 @@ packages:
 
 package web-template
     ghc-options: -Wall
+
+source-repository-package
+  type: git
+  location: https://github.com/biocad/bcd-log
+  tag: 16808faa4db0d3d94ff4006c5ca88691551ebe40
