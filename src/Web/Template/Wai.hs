@@ -1,17 +1,28 @@
 module Web.Template.Wai
-  where
+  ( logMiddlewareCustom
+  , debugLogHandler
+  , debugLog
 
-import Control.Exception        (SomeException, fromException)
-import Data.Text                (Text)
-import Network.HTTP.Types       (Header)
-import Network.Wai              (Middleware, Request, mapResponseHeaders, modifyResponse)
-import Network.Wai.Handler.Warp (InvalidRequest (..), Port, Settings, defaultSettings,
-                                 exceptionResponseForDebug, setOnException, setOnExceptionResponse,
-                                 setPort)
+  , module Web.Template.Wai
+  ) where
+
+import           Control.Exception        (SomeException, displayException, fromException)
+import           Data.Aeson               (fromEncoding, object, pairs, (.=))
+import           Data.Text                (Text, pack)
+import           Data.Text.Encoding       (decodeUtf8)
+import qualified Data.Text.IO             as TIO
+import           Data.Time                (defaultTimeLocale, formatTime, utcToLocalZonedTime)
+import           Data.Time.Clock.POSIX    (getPOSIXTime, posixSecondsToUTCTime)
+import           Network.HTTP.Types       (Header, status500)
+import           Network.Wai              (Middleware, Request (..), Response, mapResponseHeaders,
+                                           modifyResponse, responseBuilder)
+import           Network.Wai.Handler.Warp (InvalidRequest (..), Port, Settings, defaultSettings,
+                                           setOnException, setOnExceptionResponse, setPort)
+import           System.IO                (hFlush, stdout)
 
 import System.BCD.Log (error')
 
-import Web.Template.Log (bcdlog, bcdlog400)
+import Web.Template.Log (bcdlog, bcdlog400, debugLog, debugLogHandler, logMiddlewareCustom)
 
 defaultHandleLog :: Middleware
 defaultHandleLog = bcdlog
@@ -37,10 +48,38 @@ defaultOnException _ e =
     Just ConnectionClosedByPeer -> return ()
     _                           -> error' ("scotty" :: Text) $ show e
 
+debugOnException :: Maybe Request -> SomeException -> IO ()
+debugOnException req e =
+  case fromException e of
+    Just ConnectionClosedByPeer -> return ()
+    _ -> do
+      time <- getPOSIXTime >>= utcToLocalZonedTime . posixSecondsToUTCTime
+      let
+        msg = pack (formatTime defaultTimeLocale "%FT%T%z" time) <> " ERROR"
+        exc = pack $ displayException e
+        reqMsg =
+          case req of
+            Nothing -> ""
+            Just request -> let
+              url = decodeUtf8 $ rawPathInfo request
+              method = decodeUtf8 $ requestMethod request
+              in " " <> method <> " " <> url
+
+      TIO.putStrLn $ msg <> reqMsg <> "\n" <> exc
+      hFlush stdout
+
+defaultExceptionResponse :: SomeException -> Response
+defaultExceptionResponse e = responseBuilder status500 [] $ fromEncoding $ pairs
+  (  "error" .= ("exception" :: Text)
+  <> ("params" .= object
+    [ "message" .= displayException e
+    ])
+  )
+
 warpSettings :: Port -> (Settings -> Settings) -> Settings
 warpSettings port userSettings =
-  setOnException defaultOnException
-  . setOnExceptionResponse exceptionResponseForDebug
+  userSettings
+  . setOnException defaultOnException
+  . setOnExceptionResponse defaultExceptionResponse
   . setPort port
-  . userSettings
   $ defaultSettings

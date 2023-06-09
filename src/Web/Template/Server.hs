@@ -12,6 +12,8 @@ module Web.Template.Server
     , defaultHandleLog400
     , defaultHeaderCORS
     , defaultOnException
+    , debugOnException
+    , debugLog
     , toApplication
     ) where
 
