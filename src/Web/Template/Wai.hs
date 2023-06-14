@@ -2,6 +2,7 @@ module Web.Template.Wai
   ( logMiddlewareCustom
   , debugLogHandler
   , debugLog
+  , formatTimeIso
 
   , module Web.Template.Wai
   ) where
@@ -22,7 +23,7 @@ import           System.IO                (hFlush, stdout)
 
 import System.BCD.Log (error')
 
-import Web.Template.Log (bcdlog, bcdlog400, debugLog, debugLogHandler, logMiddlewareCustom)
+import Web.Template.Log (bcdlog, bcdlog400, debugLog, debugLogHandler, logMiddlewareCustom, formatTimeIso)
 
 defaultHandleLog :: Middleware
 defaultHandleLog = bcdlog
