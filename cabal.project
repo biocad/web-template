@@ -28,3 +28,5 @@ source-repository-package
   tag: 79432eaa084705d6ac3f5b877287a74815a8eb71
   subdir: generic-override-aeson
   --sha256: 1qqb39lw71q7637bh2xpdcxrkyh9r6r55z2xmkgcgbwvx0wi5l9l
+
+allow-newer: openid-connect:text, openid-connect:mtl
