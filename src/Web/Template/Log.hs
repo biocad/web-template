@@ -169,8 +169,7 @@ debugLogHandler AccessLogRecord{..} = do
   TIO.putStrLn $
     formatTimeIso startZoned
     <> " INFO "
-    <> T.pack (show alStatus)
-    <> " " <> alURL
+    <> alMsg
     <> " " <> pack (show duration)
     <> " " <> pack (show sendDuration)
   when (alStatus >= 400) $
