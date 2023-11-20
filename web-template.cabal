@@ -67,7 +67,8 @@ library
                      , openapi3 >= 3.2.0
                      , openid-connect >= 0.1.1
                      , resourcet
-                     , scotty
+                     -- 0.20 has breaking changes
+                     , scotty < 0.20
                      , servant >= 0.18
                      , servant-openapi3
                      , servant-server >= 0.18
