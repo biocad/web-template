@@ -8,6 +8,7 @@ source-repository-package
   type: git
   location: https://github.com/biocad/bcd-log
   tag: 16808faa4db0d3d94ff4006c5ca88691551ebe40
+  --sha256: E/VW3Xb7Nvefle2QkTckuWn8QB2YhbBCEBVO2y/xcbo=
 
 source-repository-package
   type: git

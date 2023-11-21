@@ -6,6 +6,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.3.15] - 2023-11-20
+### Changed
+- `WithDescription` does not clash between different fields with the same type.
+
 ## [0.1.3.14] - 2023-06-14
 ### Added
 - Debug log formatter `debugLogHandler`, customizable log middleware `logMiddlewareCustom`.

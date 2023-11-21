@@ -9,8 +9,9 @@ module Web.Template.Servant.Swagger
 
 import Control.Lens                 (_Just, (%~), (&), (?~))
 import Data.Aeson                   (FromJSON, ToJSON, Value (..))
-import Data.OpenApi                 (ToSchema (..), defaultSchemaOptions, description, enum_,
-                                     genericDeclareNamedSchema, schema)
+import Data.OpenApi                 (NamedSchema (..), Referenced (..), ToSchema (..),
+                                     declareSchemaRef, defaultSchemaOptions, description, enum_,
+                                     genericDeclareNamedSchema, oneOf, schema)
 import Data.OpenApi.Internal.Schema (GToSchema, rename)
 import Data.Override                (Override)
 import Data.Override.Aeson          ()
@@ -47,8 +48,24 @@ newtype WithDescription (descr :: Symbol) a
 
 instance (Typeable a, KnownSymbol descr, ToSchema a) => ToSchema (WithDescription descr a) where
   declareNamedSchema _ = do
-    sch <- declareNamedSchema @a Proxy
-    return $ sch & schema . description ?~ pack (symbolVal @descr Proxy)
+    -- Different fields may use the same type with different descriptions.
+    -- To support this we use a hack: generate schema for a type, and
+    -- wrap it for specific field with 'oneOf' with exactly one option, adding
+    -- concrete description.
+    --
+    -- Schema for a field with description should be unnamed, to prevent it
+    -- from reusage in other fields.
+    --
+    -- OpenAPI 3.1 will have a mechanism for this without hacks, but we use 3.0.
+    sch <- declareSchemaRef @a Proxy
+    case sch of
+      -- If schema for a field is something simple like "type: string",
+      -- add description directly to it. It won't be shared with other fields.
+      Inline sub -> return $ NamedSchema Nothing $ sub
+        & description ?~ pack (symbolVal @descr Proxy)
+      Ref ref -> return $ NamedSchema Nothing $ mempty
+        & description ?~ pack (symbolVal @descr Proxy)
+        & oneOf ?~ [Ref ref]
 
 -- | Describe possible enumeration values for a 'Text' field.
 --
