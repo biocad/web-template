@@ -412,7 +412,11 @@ unauth500 = delayedFailFatal $ err500
   }
 
 swaggerUiIndexBCDTemplate :: Text
+#if MIN_VERSION_file_embed_lzma(0,1,0)
+swaggerUiIndexBCDTemplate = $$(embedText "index.html.tmpl")
+#else
 swaggerUiIndexBCDTemplate = $(embedText "index.html.tmpl")
+#endif
 
 -- | Version of 'Servant.Swagger.UI.swaggerSchemaUIServer' that uses
 -- our @index.html@ template to enable PKCE auth flow and prefill
