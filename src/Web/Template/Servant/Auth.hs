@@ -5,6 +5,9 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TemplateHaskell     #-}
 
+-- unregisteredClaims is deprecated in jose, we don't want to fix that now.
+{-# OPTIONS_GHC -Wno-deprecations #-}
+
 module Web.Template.Servant.Auth
   ( CbdAuth
   , OIDCAuth
@@ -54,7 +57,7 @@ import           Data.OpenApi.Internal          (ApiKeyLocation (..), ApiKeyPara
                                                  SecurityRequirement (..), SecurityScheme (..),
                                                  SecuritySchemeType (..))
 import           Data.OpenApi.Lens              (components, description, security, securitySchemes)
-import           Data.OpenApi.Operation         (allOperations, setResponse)
+import           Data.OpenApi.Operation         (allOperations, setResponse, setResponseWith)
 import qualified Data.Text                      as T
 import           Data.Time.Clock                (NominalDiffTime, UTCTime, addUTCTime, diffUTCTime,
                                                  getCurrentTime, nominalDiffTimeToSeconds)
@@ -370,7 +373,10 @@ instance ( HasOpenApi api
          , KnownSymbols roles
          ) => HasOpenApi (Permit roles :> api) where
   toOpenApi _ = toOpenApi @api Proxy
-    & setResponse 403 (return $ mempty & description .~ descr)
+    -- If there is already 'Permit' on deeper API levels with 403 response,
+    -- we should not override it. It may have stricter restrictions, that
+    -- need to be represented in Swagger.
+    & setResponseWith const 403 (return $ mempty & description .~ descr)
     where
       descr = "Action not permitted. Allowed for: "
         <> intercalate ", " (symbolsVal (Proxy :: Proxy roles))
