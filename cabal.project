@@ -24,4 +24,10 @@ source-repository-package
   subdir: generic-override-aeson
   --sha256: 1qqb39lw71q7637bh2xpdcxrkyh9r6r55z2xmkgcgbwvx0wi5l9l
 
-allow-newer: openid-connect:text, openid-connect:mtl
+source-repository-package
+  type: git
+  location: https://github.com/pjones/openid-connect
+  tag: ea9ccbadaa69d60a579df0fff1667115831e3677
+
+allow-newer: scotty:bytestring, scotty:text
+allow-newer: openid-connect:containers, openid-connect:lens

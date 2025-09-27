@@ -6,6 +6,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.3.17] - 2025-09-27
+### Changed
+- Update for GHC 9.6, 9.8, 9.10.
+
 ## [0.1.3.16] - 2025-03-27
 ### Changed
 - `Permit` does not overwrite 403 response description of deeper layers.

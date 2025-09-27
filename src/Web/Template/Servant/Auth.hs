@@ -24,7 +24,8 @@ module Web.Template.Servant.Auth
 
 import           Control.Applicative    ((<|>))
 import           Control.Lens           (Iso', at, coerced, ix, (&), (.~), (<&>), (?~), (^..), (^?))
-import           Control.Monad.Except   (runExceptT, unless)
+import           Control.Monad          (unless)
+import           Control.Monad.Except   (runExceptT)
 import           Control.Monad.IO.Class (MonadIO, liftIO)
 import           Data.IORef             (readIORef, writeIORef)
 import           Data.Maybe             (catMaybes)
