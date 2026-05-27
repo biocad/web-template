@@ -40,10 +40,10 @@ library
                      , Web.Template.Servant.Error
                      , Web.Template.Servant.Error.Instance
                      , Web.Template.Servant.Swagger
+                     , Web.Template.Log
   other-modules:       Web.Template.Except
                      , Web.Template.Server
                      , Web.Template.Types
-                     , Web.Template.Log
 
   build-depends:       base >= 4.7 && < 5
                      , aeson
