@@ -6,6 +6,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.4.0] - 2026-06-20
+### Changed
+- Extract OIDC authentication pipeline into a public `authenticateOIDC` function so custom
+  combinators can reuse it without duplicating logic.
+- Add `rolesVaultKey` to vault infrastructure; `authenticateOIDC` writes roles there and `Permit`
+  reads from it, removing the `HasContextEntry context OIDCConfig` constraint on `Permit`.
+- Add `oidcRoles` field to `OIDCUser` carrying the authenticated principal's roles.
+- Expose `Web.Template.Log` as a public module so downstream combinators can import vault keys
+  directly.
+
 ## [0.1.3.17] - 2025-09-27
 ### Changed
 - Update for GHC 9.6, 9.8, 9.10.
