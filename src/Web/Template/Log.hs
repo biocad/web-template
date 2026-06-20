@@ -15,6 +15,7 @@ module Web.Template.Log
   , userIdVaultKey
   , tokenVaultKey
   , pTokenVaultKey
+  , rolesVaultKey
   ) where
 
 import           Control.Monad             (forM_, when)
@@ -54,6 +55,10 @@ pTokenVaultKey :: Key (IORef (Maybe ClaimsSet))
 pTokenVaultKey = unsafePerformIO newKey
 {-# NOINLINE pTokenVaultKey #-}
 
+rolesVaultKey :: Key (IORef (Maybe [Text]))
+rolesVaultKey = unsafePerformIO newKey
+{-# NOINLINE rolesVaultKey #-}
+
 data AccessLogRecord
   = AccessLogRecord
       { alStart         :: !POSIXTime
@@ -92,8 +97,10 @@ logMiddlewareCustom log400 mLogAction app request respond = do
   userIdRef <- newIORef Nothing
   tokenRef  <- newIORef Nothing
   ptokenRef <- newIORef Nothing
+  rolesRef  <- newIORef Nothing
 
   let vaultWithEverything =
+        insert rolesVaultKey rolesRef $
         insert tokenVaultKey tokenRef $
         insert pTokenVaultKey ptokenRef $
         insert userIdVaultKey userIdRef $
